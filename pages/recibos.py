@@ -52,14 +52,12 @@ def get_connection():
     try:
         # Hacemos una consulta rápida para probar si la conexión está "viva"
         conn.cursor().execute("SELECT 1")
-    except (psycopg2.InterfaceError, psycopg2.OperationalError) as e:
-        # Si la conexión está cerrada o rota, la restablecemos.
+    except (psycopg2.InterfaceError, psycopg2.OperationalError, psycopg2.errors.InFailedSqlTransaction):
+        # Si hay un error, hacer rollback y limpiar la caché
+        if not conn.closed:
+            conn.rollback()
         st.cache_resource.clear()
         conn = init_connection()
-    except psycopg2.errors.InFailedSqlTransaction:
-        # --- AQUÍ ESTÁ LA CORRECCIÓN ---
-        # Si la transacción anterior falló, la revertimos para poder continuar.
-        conn.rollback()
     return conn
 
 # --- FUNCIONES AUXILIARES ---

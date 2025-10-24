@@ -56,7 +56,10 @@ def get_connection():
     conn = init_connection()
     try:
         conn.cursor().execute("SELECT 1")
-    except (psycopg2.InterfaceError, psycopg2.OperationalError):
+    except (psycopg2.InterfaceError, psycopg2.OperationalError, psycopg2.errors.InFailedSqlTransaction):
+        # Si hay un error, hacer rollback y limpiar la caché
+        if not conn.closed:
+            conn.rollback()
         st.cache_resource.clear()
         conn = init_connection()
     return conn

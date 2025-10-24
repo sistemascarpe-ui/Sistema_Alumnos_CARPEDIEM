@@ -5,7 +5,7 @@ import datetime
 import bcrypt
 from utils.css import load_css
 
-# --- LÓGICA DE CONEXIÓN ROBUSTA ajuajs ---
+# --- LÓGICA DE CONEXIÓN ROBUSTA ---
 @st.cache_resource
 def init_connection():
     return psycopg2.connect(st.secrets["DB_CONNECTION_STRING"])
@@ -14,7 +14,10 @@ def get_connection():
     conn = init_connection()
     try:
         conn.cursor().execute("SELECT 1")
-    except (psycopg2.InterfaceError, psycopg2.OperationalError):
+    except (psycopg2.InterfaceError, psycopg2.OperationalError, psycopg2.errors.InFailedSqlTransaction):
+        # Si hay un error, hacer rollback y limpiar la caché
+        if not conn.closed:
+            conn.rollback()
         st.cache_resource.clear()
         conn = init_connection()
     return conn
@@ -35,6 +38,13 @@ def check_login(username, password):
                 if bcrypt.checkpw(password_bytes, stored_hash):
                     return nombre_completo 
             return None
+    except (psycopg2.InterfaceError, psycopg2.OperationalError, psycopg2.errors.InFailedSqlTransaction) as e:
+        # Error de conexión o transacción fallida
+        if not conn.closed:
+            conn.rollback()
+        st.cache_resource.clear()
+        st.error("Error de conexión a la base de datos. Por favor, intenta de nuevo.")
+        return None
     except Exception as e:
         st.error(f"Error al verificar: {e}")
         return None
