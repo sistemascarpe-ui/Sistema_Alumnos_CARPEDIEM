@@ -1,0 +1,29 @@
+# Sistema de Gestión de Recibos - Dependencias
+# Optimizado para Streamlit Cloud
+# ================================================
+
+# Framework web principal
+streamlit==1.50.0
+
+# Base de datos PostgreSQL
+psycopg2-binary==2.9.10
+
+# Manipulación de datos
+pandas==2.3.3
+numpy==2.3.3
+
+# Generación de PDFs
+fpdf2==2.8.4
+
+# Conversión de números a palabras (para recibos)
+num2words==0.5.14
+
+# Procesamiento de imágenes (para logos y firmas)
+Pillow==11.3.0
+
+# Utilidades adicionales
+python-dateutil==2.9.0.post0
+pytz==2025.2
+
+# Seguridad y autenticación
+bcrypt==5.0.0

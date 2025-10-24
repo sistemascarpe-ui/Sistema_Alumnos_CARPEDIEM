@@ -1,0 +1,127 @@
+# === Python ===
+# Ignora el entorno virtual
+venv/
+env/
+.venv
+
+# Ignora los archivos de caché de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# === Secretos y Configuración Sensible ===
+# Archivos de configuración con credenciales (CRÍTICO para seguridad)
+.streamlit/secrets.toml
+.streamlit/config.toml
+.env
+.env.local
+.env.production
+.env.development
+.env.test
+secrets.json
+config.json
+credentials.json
+*.key
+*.pem
+*.p12
+*.pfx
+hash_pass.py
+
+# Archivos de base de datos locales
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.sql
+
+# === Archivos del Sistema Operativo ===
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# === Archivos de Editores ===
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+
+# PyCharm
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# === Archivos Temporales ===
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+*.log
+*.swp
+*.swo
+
+# === Archivos de sesión y cache de Streamlit ===
+.streamlit/session_state/
+.streamlit/cache/
+
+# === Archivos de respaldo ===
+backup/
+backups/
+
+# === Archivos de Testing ===
+.coverage
+.pytest_cache/
+htmlcov/
+.cover
+.hypothesis/
+
+# === Archivos Jupyter ===
+.ipynb_checkpoints/
+*.ipynb
+
+# === Archivos de Build ===
+*.spec
+*.sublime-project
+*.sublime-workspace

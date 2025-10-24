@@ -1,0 +1,38 @@
+# Archivos y carpetas a ignorar en el despliegue de Vercel
+# Esto reduce el tamaño del paquete
+
+# Entorno virtual
+venv/
+env/
+.venv
+
+# Archivos de desarrollo
+*.pyc
+__pycache__/
+*.log
+.git/
+.gitignore
+
+# Archivos de documentación (no necesarios en producción)
+DEPLOY.md
+SOLUCION_PROBLEMAS.md
+QUICK_START.md
+README.md
+
+# Archivos de configuración local
+.streamlit/secrets.toml
+.streamlit/config.toml
+
+# Archivos de prueba
+*.test.py
+test_*
+
+# Archivos temporales
+*.tmp
+*.bak
+*.swp
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
