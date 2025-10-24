@@ -467,22 +467,47 @@ def modal_editar_alumno(alumno_data, conn):
         c1, c2 = st.columns(2)
         if c1.form_submit_button("Actualizar", type="primary", use_container_width=True):
             alumno_id_int = int(alumno_data["alumno_id"])
-            with conn.cursor() as cur:
-                # 1. Actualizar los datos del alumno
-                sql_alumno = "UPDATE Alumnos SET nombre_completo=%s, status_alumno=%s, matricula=%s, correo=%s, telefono=%s, estado_residencia=%s, fecha_nacimiento=%s WHERE alumno_id=%s"
-                cur.execute(sql_alumno, (nombre, status, matricula, correo, telefono, estado, fecha_nacimiento, alumno_id_int))
-                
-                # --- ¡NUEVA LÓGICA DE INSCRIPCIÓN! ---
-                # 2. Borrar cualquier inscripción antigua
-                cur.execute("DELETE FROM Inscripciones WHERE alumno_id = %s", (alumno_id_int,))
-                
-                # 3. Si se seleccionó un grupo nuevo, insertarlo
-                if nuevo_grupo_id != 0:
-                    cur.execute("INSERT INTO Inscripciones (alumno_id, grupo_id) VALUES (%s, %s)", (alumno_id_int, int(nuevo_grupo_id)))
-                
-                conn.commit()
-            st.success("Alumno actualizado y grupo reasignado con éxito.")
-            close_modal_and_rerun()
+            try:
+                with conn.cursor() as cur:
+                    # 1. Actualizar los datos del alumno
+                    sql_alumno = "UPDATE Alumnos SET nombre_completo=%s, status_alumno=%s, matricula=%s, correo=%s, telefono=%s, estado_residencia=%s, fecha_nacimiento=%s WHERE alumno_id=%s"
+                    cur.execute(sql_alumno, (nombre, status, matricula, correo, telefono, estado, fecha_nacimiento, alumno_id_int))
+                    
+                    # --- ¡LÓGICA DE INSCRIPCIÓN MEJORADA! ---
+                    # 2. Verificar si hay inscripciones con pagos asociados
+                    cur.execute("""
+                        SELECT inscripcion_id FROM Inscripciones i
+                        WHERE i.alumno_id = %s 
+                        AND EXISTS (
+                            SELECT 1 FROM Pagos p 
+                            WHERE p.inscripcion_id = i.inscripcion_id
+                        )
+                    """, (alumno_id_int,))
+                    inscripciones_con_pagos = cur.fetchall()
+                    
+                    if inscripciones_con_pagos:
+                        # Si hay pagos, solo actualizar el grupo_id de la inscripción existente
+                        if nuevo_grupo_id != 0:
+                            cur.execute("""
+                                UPDATE Inscripciones 
+                                SET grupo_id = %s 
+                                WHERE alumno_id = %s
+                            """, (int(nuevo_grupo_id), alumno_id_int))
+                        st.info("Alumno actualizado. Nota: El grupo se actualizó preservando los pagos registrados.")
+                    else:
+                        # Si no hay pagos, borrar y crear nueva inscripción
+                        cur.execute("DELETE FROM Inscripciones WHERE alumno_id = %s", (alumno_id_int,))
+                        
+                        # 3. Si se seleccionó un grupo nuevo, insertarlo
+                        if nuevo_grupo_id != 0:
+                            cur.execute("INSERT INTO Inscripciones (alumno_id, grupo_id) VALUES (%s, %s)", (alumno_id_int, int(nuevo_grupo_id)))
+                    
+                    conn.commit()
+                    st.success("Alumno actualizado con éxito.")
+                    close_modal_and_rerun()
+            except Exception as e:
+                st.error(f"Error al actualizar alumno: {e}")
+                conn.rollback()
         if c2.form_submit_button("Cancelar", use_container_width=True):
             close_modal_and_rerun()
 
