@@ -21,7 +21,7 @@ with st.sidebar:
     st.page_link("sistemaR.py", label="Dashboard Principal", icon="📊")
     st.page_link("pages/administracion.py", label="Administración", icon="👥")
     st.page_link("pages/recibos.py", label="Recibos de Pago", icon="🧾")
-    st.page_link("pages/historial.py", label="Historial de Grupos", icon="📚")
+    st.page_link("pages/Historial.py", label="Historial de Grupos", icon="📚")
     # --- Fin del menú ---
     
     st.markdown("---")
