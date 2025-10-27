@@ -123,7 +123,7 @@ def load_css():
             transform: translateY(-2px) !important;
         }
 
-        /* === TABLAS CON LÍNEAS DIVISORIAS VERTICALES === */
+        /* === TABLAS CON GRID DE LÍNEAS CLARAS === */
         
         /* Contenedor principal de datos */
         .stDataFrame {
@@ -137,22 +137,37 @@ def load_css():
             background-color: #e3f2fd !important;
         }
 
-        /* Líneas divisorias verticales entre columnas */
-        div[data-testid="column"] {
+        /* Líneas verticales entre columnas en todas las tablas */
+        div[data-testid="stHorizontalBlock"] > div {
             border-right: 1px solid #dee2e6 !important;
-            padding: 0.25rem 0.5rem !important;
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
         }
 
-        /* Quitar borde derecho en la última columna */
+        /* Quitar borde en la última columna */
         div[data-testid="stHorizontalBlock"] > div:last-child {
             border-right: none !important;
         }
 
-        /* Línea horizontal sutil bajo los encabezados */
+        /* Líneas horizontales entre filas */
+        div[data-testid="stHorizontalBlock"] {
+            border-bottom: 1px solid #e9ecef !important;
+            padding-top: 0.5rem !important;
+            padding-bottom: 0.5rem !important;
+        }
+
+        /* Encabezados con fondo gris suave */
         .table-header-row {
-            border-bottom: 1px solid #dee2e6;
-            margin-bottom: 0.5rem;
-            padding-bottom: 0.25rem;
+            background-color: #f8f9fa !important;
+            border-bottom: 2px solid #dee2e6 !important;
+            padding: 0.75rem 0 !important;
+            margin-bottom: 0 !important;
+        }
+
+        /* Espaciado consistente */
+        div[data-testid="stHorizontalBlock"] {
+            margin-bottom: 0 !important;
+            gap: 0 !important;
         }
 
         /* 1. Fondo general de la aplicación */
@@ -223,47 +238,39 @@ def load_css():
             margin: 1.5rem 0 1rem 0;
         }
 
-        /* === MEJORAS PARA PESTAÑAS (TABS) === */
+        /* === PESTAÑAS SIMPLES CON LÍNEA Y TEXTO NARANJA === */
         
-        /* Contenedor de pestañas */
+        /* Quitar fondo y estilos extra */
         div[data-baseweb="tab-list"] {
-            background-color: #f8f9fa !important;
-            border-radius: 12px !important;
-            padding: 0.5rem !important;
+            background-color: transparent !important;
+            padding: 0 !important;
+            border-bottom: 1px solid #e9ecef !important;
             margin-bottom: 1.5rem !important;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
         }
 
-        /* Pestañas individuales */
+        /* Pestañas individuales - estilo mínimo */
         button[data-baseweb="tab"] {
             background-color: transparent !important;
             border: none !important;
-            border-radius: 8px !important;
+            border-bottom: 3px solid transparent !important;
             padding: 0.75rem 1.5rem !important;
-            margin: 0 0.25rem !important;
+            margin: 0 !important;
             font-size: 1rem !important;
-            font-weight: 500 !important;
+            font-weight: normal !important;
             color: #6c757d !important;
-            transition: all 0.3s ease !important;
+            transition: color 0.2s ease !important;
         }
 
-        /* Pestaña activa */
+        /* Pestaña activa - texto naranja */
         button[data-baseweb="tab"][aria-selected="true"] {
-            background-color: #0d47a1 !important;
-            color: white !important;
-            transform: translateY(-2px) !important;
-            box-shadow: 0 4px 12px rgba(13, 71, 161, 0.3) !important;
+            color: #FF9500 !important;
+            font-weight: 600 !important;
+            border-bottom-color: #FF9500 !important;
         }
 
-        /* Hover en pestañas inactivas */
+        /* Hover en pestañas */
         button[data-baseweb="tab"]:hover:not([aria-selected="true"]) {
-            background-color: #e9ecef !important;
             color: #495057 !important;
-        }
-
-        /* Quitar el indicador naranja por defecto */
-        div[data-testid="stTabs"] > div > div > div > div {
-            border-bottom: none !important;
         }
     </style>
     """, unsafe_allow_html=True)

@@ -67,11 +67,13 @@ if st.session_state.logged_in:
     time_since_activity = (now - st.session_state.last_activity).total_seconds() / 60  # en minutos
     
     if time_since_activity > st.session_state.session_timeout_minutes:
-        # Session expired
+        # Session expired - redirigir al login
         st.session_state.logged_in = False
         st.session_state.username = None
         st.session_state.nombre_completo = None
         st.session_state.show_timeout_message = True
+        # Forzar redirección al login
+        st.rerun()
     else:
         # Actualizar última actividad
         st.session_state.last_activity = now
@@ -114,6 +116,7 @@ if not st.session_state.logged_in:
                 st.session_state.logged_in = True
                 st.session_state.username = username
                 st.session_state.nombre_completo = nombre_usuario
+                st.session_state.last_activity = datetime.datetime.now()  # Actualizar actividad
                 st.rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")

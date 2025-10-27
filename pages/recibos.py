@@ -44,7 +44,8 @@ if st.session_state.logged_in:
         st.session_state.username = None
         st.session_state.nombre_completo = None
         st.session_state.show_timeout_message = True
-        st.rerun()
+        # Forzar redirección
+        st.switch_page("sistemaR.py")
     else:
         st.session_state.last_activity = now
 

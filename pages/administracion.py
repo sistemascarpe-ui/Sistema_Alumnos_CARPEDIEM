@@ -42,7 +42,8 @@ if st.session_state.logged_in:
         st.session_state.username = None
         st.session_state.nombre_completo = None
         st.session_state.show_timeout_message = True
-        st.rerun()
+        # Forzar redirección
+        st.switch_page("sistemaR.py")
     else:
         st.session_state.last_activity = now
 
@@ -102,19 +103,21 @@ def get_connection():
 # --- FUNCIONES DE TABLA REFACTORIZADAS ---
 
 def display_data_table(df, col_widths, headers, custom_renderers):
-    """ Función genérica para mostrar una tabla de datos con líneas divisorias verticales. """
+    """ Función genérica para mostrar una tabla de datos con líneas claras. """
     
-    # Encabezado
-    st.markdown('<div class="table-header-row">', unsafe_allow_html=True)
+    # Encabezado con estilos de grid
+    st.markdown('<div style="background-color: #f8f9fa; padding: 0.75rem 0; border-bottom: 2px solid #dee2e6; margin-bottom: 0;">', unsafe_allow_html=True)
     header_cols = st.columns(col_widths)
     for i, header in enumerate(headers):
         with header_cols[i]:
             st.markdown(f"**{header}**")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Filas de datos 
+    # Filas de datos con líneas
     for index, row in df.iterrows():
+        st.markdown('<div style="padding: 0.5rem 0;">', unsafe_allow_html=True)
         row_cols = st.columns(col_widths)
+        
         for i, header in enumerate(headers):
             with row_cols[i]:
                 renderer_func = custom_renderers.get(header)
@@ -126,6 +129,8 @@ def display_data_table(df, col_widths, headers, custom_renderers):
                         st.write(str(row[col_name]))
                     else:
                         st.write("—")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # --- HANDLERS Y FUNCIONES DE MODAL ---
 
