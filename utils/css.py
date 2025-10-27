@@ -238,37 +238,45 @@ def load_css():
             margin: 1.5rem 0 1rem 0;
         }
 
-        /* === PESTAÑAS CON RECUADRO BLANCO Y TEXTO NARANJA GRANDE === */
+        /* === PESTAÑAS CON CONTORNO Y TEXTO NARANJA === */
         
         /* Quitar fondo del contenedor de tabs */
         div[data-baseweb="tab-list"] {
             background-color: transparent !important;
             padding: 0 !important;
-            border-bottom: none !important;
+            border-bottom: 1px solid #e9ecef !important;
             margin-bottom: 1.5rem !important;
         }
 
         /* Pestañas inactivas */
         button[data-baseweb="tab"] {
-            background-color: transparent !important;
-            border: none !important;
+            background-color: white !important;
+            border: 2px solid #e9ecef !important;
+            border-radius: 8px !important;
             padding: 0.75rem 1.5rem !important;
             margin: 0 0.5rem !important;
-            font-size: 1.1rem !important;
+            font-size: 1rem !important;
             font-weight: normal !important;
             color: #6c757d !important;
             transition: all 0.2s ease !important;
         }
 
-        /* Pestaña activa - recuadro blanco con borde negro y letras naranja grandes */
+        /* Pestaña activa - contorno naranja con letras naranja grandes */
         button[data-baseweb="tab"][aria-selected="true"] {
             background-color: white !important;
-            border: 2px solid black !important;
+            border: 2px solid #FF9500 !important;
             border-radius: 8px !important;
             color: #FF9500 !important;
             font-weight: 700 !important;
-            font-size: 1.2rem !important;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+            font-size: 1.3rem !important;
+        }
+
+        /* ANULAR RECUADRO NARANJA - Cambiar todos los divs internos */
+        button[data-baseweb="tab"][aria-selected="true"] > div,
+        button[data-baseweb="tab"][aria-selected="true"] > div > div,
+        button[data-baseweb="tab"][aria-selected="true"] > div > div > div {
+            background-color: white !important;
+            background: white !important;
         }
 
         /* Hover en pestañas inactivas */
@@ -276,6 +284,7 @@ def load_css():
             color: #495057 !important;
             background-color: #f8f9fa !important;
             border-radius: 8px !important;
+            border-color: #dee2e6 !important;
         }
     </style>
     """, unsafe_allow_html=True)
