@@ -164,11 +164,18 @@ def load_css():
             margin-bottom: 0 !important;
         }
 
-        /* Espaciado consistente */
+        /* Espaciado consistente en tablas */
         div[data-testid="stHorizontalBlock"] {
             margin-bottom: 0 !important;
             gap: 0 !important;
         }
+
+        /* Reducir padding en componentes de Streamlit para tablas compactas */
+        div[data-testid="stColumn"] > div > div {
+            margin-bottom: 0 !important;
+            padding-bottom: 0 !important;
+        }
+
 
         /* 1. Fondo general de la aplicación */
         body {
@@ -240,9 +247,16 @@ def load_css():
 
         /* === PESTAÑAS SIN RECUADRO NARANJA === */
         
-        /* Ocultar completamente el indicador por defecto de Streamlit */
+        /* NO ocultar el contenido de las pestañas */
+        div[data-testid="stTabs"] > div > div > div {
+            display: block !important;
+            visibility: visible !important;
+        }
+        
+        /* Anular cualquier fondo naranja/rojo en el indicador de tabs */
         div[data-testid="stTabs"] > div > div > div > div {
-            display: none !important;
+            background-color: transparent !important;
+            background: transparent !important;
         }
 
         /* Contenedor de tabs limpio */

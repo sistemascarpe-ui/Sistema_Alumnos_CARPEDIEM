@@ -103,34 +103,26 @@ def get_connection():
 # --- FUNCIONES DE TABLA REFACTORIZADAS ---
 
 def display_data_table(df, col_widths, headers, custom_renderers):
-    """ Función genérica para mostrar una tabla de datos con líneas claras y sin espaciado excesivo. """
+    """ Función genérica para mostrar una tabla de datos con columnas personalizadas. """
     
-    # Encabezado con estilos de grid
-    st.markdown('<div style="background-color: #f8f9fa; padding: 0.5rem 0; border-bottom: 2px solid #dee2e6; margin-bottom: 0;">', unsafe_allow_html=True)
+    # Encabezado
     header_cols = st.columns(col_widths)
     for i, header in enumerate(headers):
-        with header_cols[i]:
-            st.markdown(f"**{header}**")
-    st.markdown('</div>', unsafe_allow_html=True)
+        header_cols[i].markdown(f"**{header}**")
+    st.markdown("<hr style='margin-top:0;margin-bottom:0.5rem'>", unsafe_allow_html=True)
 
-    # Filas de datos sin espaciado excesivo
+    # Filas de datos
     for index, row in df.iterrows():
-        st.markdown('<div style="padding: 0.25rem 0; border-bottom: 1px solid #e9ecef;">', unsafe_allow_html=True)
         row_cols = st.columns(col_widths)
-        
         for i, header in enumerate(headers):
+            renderer_func = custom_renderers.get(header)
             with row_cols[i]:
-                renderer_func = custom_renderers.get(header)
                 if renderer_func:
                     renderer_func(row)
                 else:
                     col_name = header.lower().replace(" ", "_")
                     if col_name in row and pd.notna(row[col_name]):
                         st.write(str(row[col_name]))
-                    else:
-                        st.write("—")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
 
 # --- HANDLERS Y FUNCIONES DE MODAL ---
 
@@ -304,7 +296,7 @@ with tab_alumnos:
                 }
                 display_data_table(
                     df=df_grupo_actual,
-                    col_widths=[1.5, 3, 2, 2, 2, 2, 3, 2, 2],
+                    col_widths=[3, 3, 2, 2, 2, 2, 3, 2, 2],
                     headers=["Acciones", "Nombre", "Grupo", "Status", "Certificado", "Matrícula", "Correo", "Teléfono", "Fecha Nacimiento"],
                     custom_renderers=renderers
                 )
