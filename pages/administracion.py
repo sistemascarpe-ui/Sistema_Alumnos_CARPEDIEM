@@ -102,28 +102,21 @@ def get_connection():
 # --- FUNCIONES DE TABLA REFACTORIZADAS ---
 
 def display_data_table(df, col_widths, headers, custom_renderers):
-    """ Función genérica para mostrar una tabla de datos con columnas personalizadas con mejor diseño. """
+    """ Función genérica para mostrar una tabla de datos con líneas divisorias verticales. """
     
-    # Encabezado con estilo mejorado
-    st.markdown('<div class="table-header">', unsafe_allow_html=True)
+    # Encabezado
+    st.markdown('<div class="table-header-row">', unsafe_allow_html=True)
     header_cols = st.columns(col_widths)
     for i, header in enumerate(headers):
         with header_cols[i]:
-            st.markdown(f'<div class="table-cell"><strong>{header}</strong></div>', unsafe_allow_html=True)
+            st.markdown(f"**{header}**")
     st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Separador visual
-    st.markdown('<div class="group-separator"></div>', unsafe_allow_html=True)
 
-    # Filas de datos con alternancia de colores y bordes
+    # Filas de datos 
     for index, row in df.iterrows():
-        st.markdown(f'<div class="table-row">', unsafe_allow_html=True)
         row_cols = st.columns(col_widths)
-        
         for i, header in enumerate(headers):
             with row_cols[i]:
-                st.markdown('<div class="table-cell">', unsafe_allow_html=True)
-                
                 renderer_func = custom_renderers.get(header)
                 if renderer_func:
                     renderer_func(row)
@@ -132,11 +125,7 @@ def display_data_table(df, col_widths, headers, custom_renderers):
                     if col_name in row and pd.notna(row[col_name]):
                         st.write(str(row[col_name]))
                     else:
-                        st.write("—")  # Guión para valores faltantes
-                        
-                st.markdown('</div>', unsafe_allow_html=True)
-        
-        st.markdown('</div>', unsafe_allow_html=True)
+                        st.write("—")
 
 # --- HANDLERS Y FUNCIONES DE MODAL ---
 

@@ -123,7 +123,7 @@ def load_css():
             transform: translateY(-2px) !important;
         }
 
-        /* === TABLAS MEJORADAS CON LÍNEAS DIVISORIAS === */
+        /* === TABLAS CON LÍNEAS DIVISORIAS VERTICALES === */
         
         /* Contenedor principal de datos */
         .stDataFrame {
@@ -134,55 +134,25 @@ def load_css():
         }
 
         .stDataFrame tr:hover {
-            background-color: #e3f2fd !important; /* Azul claro al pasar el mouse */
-        }
-
-        /* Líneas divisorias para tablas personalizadas */
-        .table-row {
-            border-bottom: 1px solid #e0e0e0;
-            padding: 0.75rem 0;
-            margin: 0.5rem 0;
-        }
-
-        .table-row:last-child {
-            border-bottom: none;
-        }
-
-        /* Encabezados de tabla */
-        .table-header {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            color: #495057;
-            border-bottom: 2px solid #dee2e6;
-            padding: 0.75rem 0;
-            margin-bottom: 0.5rem;
-        }
-
-        /* Columnas con bordes verticales */
-        .table-cell {
-            border-right: 1px solid #e9ecef;
-            padding: 0 0.5rem;
-        }
-
-        .table-cell:last-child {
-            border-right: none;
-        }
-
-        /* Alternancia de colores en filas */
-        .table-row:nth-child(even) {
-            background-color: #f8f9fa;
-        }
-
-        .table-row:nth-child(odd) {
-            background-color: #ffffff;
-        }
-
-        /* Hover mejorado para filas */
-        .table-row:hover {
             background-color: #e3f2fd !important;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            transition: all 0.2s ease;
+        }
+
+        /* Líneas divisorias verticales entre columnas */
+        div[data-testid="column"] {
+            border-right: 1px solid #dee2e6 !important;
+            padding: 0.25rem 0.5rem !important;
+        }
+
+        /* Quitar borde derecho en la última columna */
+        div[data-testid="stHorizontalBlock"] > div:last-child {
+            border-right: none !important;
+        }
+
+        /* Línea horizontal sutil bajo los encabezados */
+        .table-header-row {
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.25rem;
         }
 
         /* 1. Fondo general de la aplicación */
@@ -251,6 +221,49 @@ def load_css():
             height: 3px;
             border-radius: 1.5px;
             margin: 1.5rem 0 1rem 0;
+        }
+
+        /* === MEJORAS PARA PESTAÑAS (TABS) === */
+        
+        /* Contenedor de pestañas */
+        div[data-baseweb="tab-list"] {
+            background-color: #f8f9fa !important;
+            border-radius: 12px !important;
+            padding: 0.5rem !important;
+            margin-bottom: 1.5rem !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+        }
+
+        /* Pestañas individuales */
+        button[data-baseweb="tab"] {
+            background-color: transparent !important;
+            border: none !important;
+            border-radius: 8px !important;
+            padding: 0.75rem 1.5rem !important;
+            margin: 0 0.25rem !important;
+            font-size: 1rem !important;
+            font-weight: 500 !important;
+            color: #6c757d !important;
+            transition: all 0.3s ease !important;
+        }
+
+        /* Pestaña activa */
+        button[data-baseweb="tab"][aria-selected="true"] {
+            background-color: #0d47a1 !important;
+            color: white !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 12px rgba(13, 71, 161, 0.3) !important;
+        }
+
+        /* Hover en pestañas inactivas */
+        button[data-baseweb="tab"]:hover:not([aria-selected="true"]) {
+            background-color: #e9ecef !important;
+            color: #495057 !important;
+        }
+
+        /* Quitar el indicador naranja por defecto */
+        div[data-testid="stTabs"] > div > div > div > div {
+            border-bottom: none !important;
         }
     </style>
     """, unsafe_allow_html=True)
