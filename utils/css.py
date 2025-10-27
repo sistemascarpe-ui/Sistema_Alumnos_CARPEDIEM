@@ -238,39 +238,44 @@ def load_css():
             margin: 1.5rem 0 1rem 0;
         }
 
-        /* === PESTAÑAS SIMPLES CON LÍNEA Y TEXTO NARANJA === */
+        /* === PESTAÑAS CON RECUADRO BLANCO Y TEXTO NARANJA GRANDE === */
         
-        /* Quitar fondo y estilos extra */
+        /* Quitar fondo del contenedor de tabs */
         div[data-baseweb="tab-list"] {
             background-color: transparent !important;
             padding: 0 !important;
-            border-bottom: 1px solid #e9ecef !important;
+            border-bottom: none !important;
             margin-bottom: 1.5rem !important;
         }
 
-        /* Pestañas individuales - estilo mínimo */
+        /* Pestañas inactivas */
         button[data-baseweb="tab"] {
             background-color: transparent !important;
             border: none !important;
-            border-bottom: 3px solid transparent !important;
             padding: 0.75rem 1.5rem !important;
-            margin: 0 !important;
-            font-size: 1rem !important;
+            margin: 0 0.5rem !important;
+            font-size: 1.1rem !important;
             font-weight: normal !important;
             color: #6c757d !important;
-            transition: color 0.2s ease !important;
+            transition: all 0.2s ease !important;
         }
 
-        /* Pestaña activa - texto naranja */
+        /* Pestaña activa - recuadro blanco con borde negro y letras naranja grandes */
         button[data-baseweb="tab"][aria-selected="true"] {
+            background-color: white !important;
+            border: 2px solid black !important;
+            border-radius: 8px !important;
             color: #FF9500 !important;
-            font-weight: 600 !important;
-            border-bottom-color: #FF9500 !important;
+            font-weight: 700 !important;
+            font-size: 1.2rem !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
         }
 
-        /* Hover en pestañas */
+        /* Hover en pestañas inactivas */
         button[data-baseweb="tab"]:hover:not([aria-selected="true"]) {
             color: #495057 !important;
+            background-color: #f8f9fa !important;
+            border-radius: 8px !important;
         }
     </style>
     """, unsafe_allow_html=True)

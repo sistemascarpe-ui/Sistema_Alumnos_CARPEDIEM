@@ -103,19 +103,19 @@ def get_connection():
 # --- FUNCIONES DE TABLA REFACTORIZADAS ---
 
 def display_data_table(df, col_widths, headers, custom_renderers):
-    """ Función genérica para mostrar una tabla de datos con líneas claras. """
+    """ Función genérica para mostrar una tabla de datos con líneas claras y sin espaciado excesivo. """
     
     # Encabezado con estilos de grid
-    st.markdown('<div style="background-color: #f8f9fa; padding: 0.75rem 0; border-bottom: 2px solid #dee2e6; margin-bottom: 0;">', unsafe_allow_html=True)
+    st.markdown('<div style="background-color: #f8f9fa; padding: 0.5rem 0; border-bottom: 2px solid #dee2e6; margin-bottom: 0;">', unsafe_allow_html=True)
     header_cols = st.columns(col_widths)
     for i, header in enumerate(headers):
         with header_cols[i]:
             st.markdown(f"**{header}**")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Filas de datos con líneas
+    # Filas de datos sin espaciado excesivo
     for index, row in df.iterrows():
-        st.markdown('<div style="padding: 0.5rem 0;">', unsafe_allow_html=True)
+        st.markdown('<div style="padding: 0.25rem 0; border-bottom: 1px solid #e9ecef;">', unsafe_allow_html=True)
         row_cols = st.columns(col_widths)
         
         for i, header in enumerate(headers):
@@ -229,12 +229,12 @@ with tab_alumnos:
         search_term = st.text_input(
             "Buscar Alumno", 
             placeholder="🔍 Buscar por nombre, matrícula o correo...",
-            key="search_alumnos_realtime"
+            key="search_alumnos_realtime",
+            value=st.session_state.get("search_value", "")
         )
 
     try:
-        # --- CAMBIO AQUÍ ---
-        # Lógica de consulta modificada para las nuevas reglas de filtro
+        # --- LÓGICA DE CONSULTA Y FILTRADO ---
         
         query_alumnos = "SELECT a.*, g.nombre_grupo FROM Alumnos a LEFT JOIN Inscripciones i ON a.alumno_id = i.alumno_id LEFT JOIN Grupos g ON i.grupo_id = g.grupo_id"
         params = []
@@ -249,12 +249,12 @@ with tab_alumnos:
         if status_filter == "Todos":
             # Muestra todos (menos Finalizado) PERO solo con grupo
             where_clauses.append("a.status_alumno IN ('Activo', 'Restringido', 'Baja')")
-            where_clauses.append("g.grupo_id IS NOT NULL") # Excepción
+            where_clauses.append("g.grupo_id IS NOT NULL")
         
         elif status_filter == "Activo":
             # Muestra solo Activos PERO solo con grupo
             where_clauses.append("a.status_alumno = 'Activo'")
-            where_clauses.append("g.grupo_id IS NOT NULL") # Excepción
+            where_clauses.append("g.grupo_id IS NOT NULL")
 
         elif status_filter in ("Restringido", "Baja"):
             # Estos filtros SÍ deben mostrar alumnos "sin grupo" para reactivarlos
@@ -271,13 +271,17 @@ with tab_alumnos:
         query_alumnos += " ORDER BY g.nombre_grupo ASC, a.nombre_completo ASC;"
         df_alumnos_raw = pd.read_sql(query_alumnos, conn, params=tuple(params))
 
-        # El resto del código de búsqueda y renderizado no cambia
-        if search_term:
+        # 3. Aplicar filtro de búsqueda si existe texto (búsqueda en tiempo real)
+        if search_term and search_term.strip():
+            search_term_clean = search_term.strip()
             df_alumnos_raw = df_alumnos_raw[
-                df_alumnos_raw["nombre_completo"].str.contains(search_term, case=False, na=False) | 
-                df_alumnos_raw["matricula"].str.contains(search_term, case=False, na=False) | 
-                df_alumnos_raw["correo"].str.contains(search_term, case=False, na=False)
+                df_alumnos_raw["nombre_completo"].str.contains(search_term_clean, case=False, na=False) | 
+                df_alumnos_raw["matricula"].str.contains(search_term_clean, case=False, na=False) | 
+                df_alumnos_raw["correo"].str.contains(search_term_clean, case=False, na=False)
             ]
+        
+        # Guardar el valor de búsqueda en session_state para persistencia
+        st.session_state["search_value"] = search_term if search_term else ""
         
         if df_alumnos_raw.empty:
             st.info("No se encontraron alumnos con los filtros seleccionados.")
