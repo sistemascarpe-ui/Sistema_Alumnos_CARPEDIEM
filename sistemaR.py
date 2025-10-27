@@ -54,6 +54,28 @@ def check_login(username, password):
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
+# --- SISTEMA DE TIMEOUT DE SESIÓN ---
+if "last_activity" not in st.session_state:
+    st.session_state.last_activity = datetime.datetime.now()
+
+if "session_timeout_minutes" not in st.session_state:
+    st.session_state.session_timeout_minutes = 60  # 60 minutos de inactividad
+
+# Verificar timeout de sesión si está logueado
+if st.session_state.logged_in:
+    now = datetime.datetime.now()
+    time_since_activity = (now - st.session_state.last_activity).total_seconds() / 60  # en minutos
+    
+    if time_since_activity > st.session_state.session_timeout_minutes:
+        # Session expired
+        st.session_state.logged_in = False
+        st.session_state.username = None
+        st.session_state.nombre_completo = None
+        st.session_state.show_timeout_message = True
+    else:
+        # Actualizar última actividad
+        st.session_state.last_activity = now
+
 # --- 2. SI NO HA HECHO LOGIN (Mostrar solo el formulario) ---
 if not st.session_state.logged_in:
     
@@ -71,6 +93,13 @@ if not st.session_state.logged_in:
     """, unsafe_allow_html=True)
     
     st.title("Sistema de Gestión 🔑")
+    
+    # Mostrar mensaje de timeout si existe
+    if hasattr(st.session_state, 'show_timeout_message') and st.session_state.show_timeout_message:
+        st.error("🕒 Tu sesión ha expirado por inactividad. Por favor, inicia sesión nuevamente.")
+        # Limpiar el mensaje después de mostrarlo
+        del st.session_state.show_timeout_message
+    
     st.subheader("Por favor, inicia sesión para continuar")
 
     with st.form("login_form"):

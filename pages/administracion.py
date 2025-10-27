@@ -8,13 +8,48 @@ import json
 from utils.css import load_css
 # --- INICIO DEL BLOQUE "PORTERO" (Versión 2.0) ---
 
-# 1. Verificar si el usuario ha iniciado sesión
+# 1. Sistema de timeout y verificación de sesión
+if "last_activity" not in st.session_state:
+    st.session_state.last_activity = datetime.datetime.now()
+
+if "session_timeout_minutes" not in st.session_state:
+    st.session_state.session_timeout_minutes = 60
+
+# Verificar si el usuario ha iniciado sesión y no ha expirado la sesión
 if "logged_in" not in st.session_state or not st.session_state.logged_in:
+    st.set_page_config(page_title="Acceso Denegado", layout="centered")
+    
+    # Ocultar sidebar completamente
+    st.markdown("""
+        <style>
+            [data-testid="stSidebar"] {
+                display: none;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+    
     st.warning("🔒 Por favor, inicia sesión para ver esta página.")
     st.page_link("sistemaR.py", label="Ir a la página de Login", icon="🔑")
     st.stop()
 
-# 2. Si el usuario SÍ está logueado, mostrar el menú y el botón de logout
+# Verificar timeout
+if st.session_state.logged_in:
+    now = datetime.datetime.now()
+    time_since_activity = (now - st.session_state.last_activity).total_seconds() / 60
+    
+    if time_since_activity > st.session_state.session_timeout_minutes:
+        st.session_state.logged_in = False
+        st.session_state.username = None
+        st.session_state.nombre_completo = None
+        st.session_state.show_timeout_message = True
+        st.rerun()
+    else:
+        st.session_state.last_activity = now
+
+# 2. Configurar página si está autenticado
+st.set_page_config(page_title="Administración", layout="wide")
+
+# 3. Si el usuario SÍ está logueado, mostrar el menú y el botón de logout
 with st.sidebar:
     st.title(f"Bienvenido, {st.session_state.nombre_completo} 👋")
     st.markdown("---")
@@ -67,23 +102,41 @@ def get_connection():
 # --- FUNCIONES DE TABLA REFACTORIZADAS ---
 
 def display_data_table(df, col_widths, headers, custom_renderers):
-    """ Función genérica para mostrar una tabla de datos con columnas personalizadas. """
+    """ Función genérica para mostrar una tabla de datos con columnas personalizadas con mejor diseño. """
+    
+    # Encabezado con estilo mejorado
+    st.markdown('<div class="table-header">', unsafe_allow_html=True)
     header_cols = st.columns(col_widths)
     for i, header in enumerate(headers):
-        header_cols[i].markdown(f"**{header}**")
-    st.markdown("<hr style='margin-top:0;margin-bottom:0.5rem'>", unsafe_allow_html=True)
+        with header_cols[i]:
+            st.markdown(f'<div class="table-cell"><strong>{header}</strong></div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Separador visual
+    st.markdown('<div class="group-separator"></div>', unsafe_allow_html=True)
 
+    # Filas de datos con alternancia de colores y bordes
     for index, row in df.iterrows():
+        st.markdown(f'<div class="table-row">', unsafe_allow_html=True)
         row_cols = st.columns(col_widths)
+        
         for i, header in enumerate(headers):
-            renderer_func = custom_renderers.get(header)
             with row_cols[i]:
+                st.markdown('<div class="table-cell">', unsafe_allow_html=True)
+                
+                renderer_func = custom_renderers.get(header)
                 if renderer_func:
                     renderer_func(row)
                 else:
                     col_name = header.lower().replace(" ", "_")
                     if col_name in row and pd.notna(row[col_name]):
                         st.write(str(row[col_name]))
+                    else:
+                        st.write("—")  # Guión para valores faltantes
+                        
+                st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # --- HANDLERS Y FUNCIONES DE MODAL ---
 
@@ -178,7 +231,12 @@ with tab_alumnos:
         status_filter = st.selectbox("Filtrar por Status", options=status_options, index=0)
 
     with col_filter3:
-        search_term = st.text_input("Buscar Alumno", placeholder="🔍 Buscar por nombre, matrícula o correo...")
+        # Filtro de búsqueda en tiempo real
+        search_term = st.text_input(
+            "Buscar Alumno", 
+            placeholder="🔍 Buscar por nombre, matrícula o correo...",
+            key="search_alumnos_realtime"
+        )
 
     try:
         # --- CAMBIO AQUÍ ---
@@ -304,18 +362,39 @@ with tab_grupos:
             st.write("") # Espacio
             if st.form_submit_button("Añadir Grupo") and profesor_id and nombre_grupo:
                 
-                # --- ¡NUEVA LÓGICA! (Validaciones) ---
+                # --- VALIDACIONES MEJORADAS PARA FECHAS ---
                 today = datetime.date.today()
                 valid = True
                 
                 # Regla 1: Término >= Inicio
                 if fecha_termino < fecha_inicio:
-                    st.error("Error: La Fecha de Término no puede ser anterior a la Fecha de Inicio.")
+                    st.error("❌ Error: La Fecha de Término no puede ser anterior a la Fecha de Inicio.")
                     valid = False
                 
-                # Regla 2: 'Próximo' debe ser en el futuro
+                # Regla 2: No permitir fechas de años pasados (más de 1 año atrás)
+                one_year_ago = today.replace(year=today.year - 1)
+                if fecha_inicio < one_year_ago:
+                    st.error("❌ Error: No se pueden crear grupos con fechas de inicio de años anteriores.")
+                    valid = False
+                
+                # Regla 3: No permitir fechas de término muy en el pasado
+                if fecha_termino < today.replace(month=1, day=1):  # No antes del inicio del año actual
+                    st.error("❌ Error: La fecha de término no puede ser anterior al año actual.")
+                    valid = False
+                
+                # Regla 4: 'Próximo' debe ser en el futuro
                 if status_grupo == "Próximo" and fecha_inicio <= today:
-                    st.error("Error: Un grupo 'Próximo' debe tener una Fecha de Inicio futura (después de hoy).")
+                    st.error("❌ Error: Un grupo 'Próximo' debe tener una Fecha de Inicio futura (después de hoy).")
+                    valid = False
+                
+                # Regla 5: 'Activo' no debe tener fecha de inicio muy futura (más de 30 días)
+                if status_grupo == "Activo" and fecha_inicio > (today + datetime.timedelta(days=30)):
+                    st.warning("⚠️ Advertencia: Un grupo 'Activo' tiene fecha de inicio muy lejana. ¿Debería ser 'Próximo'?")
+                
+                # Regla 6: Validar que el período del grupo no sea demasiado corto (menos de 7 días)
+                duracion = (fecha_termino - fecha_inicio).days
+                if duracion < 7:
+                    st.error("❌ Error: El grupo debe tener una duración mínima de 7 días.")
                     valid = False
                 
                 if valid:
@@ -335,7 +414,12 @@ with tab_grupos:
         query_grupos = "SELECT g.*, p.nombre_completo as nombre_profesor FROM Grupos g LEFT JOIN Profesores p ON g.profesor_id = p.profesor_id ORDER BY g.status_grupo ASC, g.nombre_grupo ASC"
         df_grupos = pd.read_sql(query_grupos, conn)
         
-        search_term_grupos = st.text_input("🔍 Buscar Grupo por nombre", key="search_grupos")
+        # Filtro de búsqueda en tiempo real para grupos
+        search_term_grupos = st.text_input(
+            "🔍 Buscar Grupo por nombre", 
+            key="search_grupos_realtime",
+            placeholder="Escribe para filtrar grupos..."
+        )
         if search_term_grupos:
             df_grupos = df_grupos[df_grupos['nombre_grupo'].str.contains(search_term_grupos, case=False, na=False)]
 
@@ -393,7 +477,12 @@ with tab_profesores:
     try:
         df_profesores = pd.read_sql("SELECT * FROM Profesores ORDER BY profesor_id ASC", conn)
         
-        search_profesores = st.text_input("🔍 Buscar Profesor", key="search_profesores")
+        # Filtro de búsqueda en tiempo real para profesores
+        search_profesores = st.text_input(
+            "🔍 Buscar Profesor", 
+            key="search_profesores_realtime",
+            placeholder="Escribe para filtrar profesores..."
+        )
         if search_profesores:
             df_profesores = df_profesores[df_profesores['nombre_completo'].str.contains(search_profesores, case=False, na=False)]
 
@@ -542,16 +631,34 @@ def modal_editar_grupo(grupo_data, conn):
         c1, c2 = st.columns(2)
         if c1.form_submit_button("Actualizar", type="primary", use_container_width=True):
             
-            # --- ¡NUEVA LÓGICA! (Validaciones) ---
+            # --- VALIDACIONES MEJORADAS PARA EDICIÓN ---
             valid = True
             today = datetime.date.today()
 
+            # Regla 1: Término >= Inicio
             if fecha_termino < fecha_inicio:
-                st.error("Error: La Fecha de Término no puede ser anterior a la Fecha de Inicio.")
+                st.error("❌ Error: La Fecha de Término no puede ser anterior a la Fecha de Inicio.")
                 valid = False
             
-            # (No aplicamos la regla de 'Próximo' > 'hoy' al editar, 
-            # ya que el admin podría estar corrigiendo un error)
+            # Regla 2: No permitir fechas muy en el pasado (flexibilidad para correcciones)
+            one_year_ago = today.replace(year=today.year - 1)
+            if fecha_inicio < one_year_ago:
+                st.error("❌ Error: No se pueden establecer fechas de inicio de años muy anteriores.")
+                valid = False
+            
+            # Regla 3: Validar duración mínima
+            duracion = (fecha_termino - fecha_inicio).days
+            if duracion < 7:
+                st.error("❌ Error: El grupo debe tener una duración mínima de 7 días.")
+                valid = False
+            
+            # Regla 4: Para grupos 'Próximo', validar que la fecha sea futura
+            if status_grupo == "Próximo" and fecha_inicio <= today:
+                st.warning("⚠️ Advertencia: Un grupo 'Próximo' normalmente debe tener fecha de inicio futura.")
+            
+            # Regla 5: Para grupos 'Activo', advertir si la fecha de inicio es muy futura
+            if status_grupo == "Activo" and fecha_inicio > (today + datetime.timedelta(days=30)):
+                st.warning("⚠️ Advertencia: Un grupo 'Activo' tiene fecha de inicio muy lejana.")
             
             if valid:
                 try:

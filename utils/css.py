@@ -37,18 +37,51 @@ def load_css():
             box-shadow: 2px 0 10px rgba(0,0,0,0.1) !important;
         }
 
+        /* === MEJORAS DE ALINEACIÓN Y ESPACIADO === */
+        
+        /* Contenedores de filtros mejor alineados */
         .filter-container {
             display: flex;
-            align-items: center; /* Centra los items verticalmente */
-            gap: 1rem; /* Añade un espacio entre el filtro y la búsqueda */
+            align-items: flex-end; /* Alinea por la parte inferior */
+            gap: 1rem;
+            margin-bottom: 1rem;
         }
 
+        /* Alineación mejorada para bloques horizontales */
         div[data-testid="stHorizontalBlock"] {
-            align-items: center !important;  /* centra todo en la fila */
+            align-items: flex-end !important;
+            gap: 1rem !important;
+            margin-bottom: 1rem !important;
         }
 
-        div[data-testid="stSelectbox"] {
-            margin-top: -25px !important;  /* súbelo */
+        /* Mejor alineación para selectboxes en filtros */
+        div[data-testid="stHorizontalBlock"] div[data-testid="stSelectbox"] {
+            margin-bottom: 0 !important;
+        }
+
+        /* Alineación para campos de texto en filtros */
+        div[data-testid="stHorizontalBlock"] div[data-testid="stTextInput"] {
+            margin-bottom: 0 !important;
+        }
+
+        /* Espaciado consistente entre secciones */
+        .stTabs > div > div > div > div {
+            padding: 1rem 0 !important;
+        }
+
+        /* Mejor espaciado para expanders */
+        div[data-testid="stExpander"] {
+            margin-bottom: 1.5rem !important;
+        }
+
+        /* Alineación mejorada para formularios */
+        div[data-testid="stForm"] {
+            margin-bottom: 2rem !important;
+        }
+
+        /* Espaciado entre columnas en formularios */
+        div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
+            gap: 2rem !important;
         }
 
         /* --- Texto dentro del sidebar --- */
@@ -90,7 +123,9 @@ def load_css():
             transform: translateY(-2px) !important;
         }
 
-        /* --- Tablas --- */
+        /* === TABLAS MEJORADAS CON LÍNEAS DIVISORIAS === */
+        
+        /* Contenedor principal de datos */
         .stDataFrame {
             background-color: #ffffff !important;
             border-radius: 12px !important;
@@ -100,6 +135,54 @@ def load_css():
 
         .stDataFrame tr:hover {
             background-color: #e3f2fd !important; /* Azul claro al pasar el mouse */
+        }
+
+        /* Líneas divisorias para tablas personalizadas */
+        .table-row {
+            border-bottom: 1px solid #e0e0e0;
+            padding: 0.75rem 0;
+            margin: 0.5rem 0;
+        }
+
+        .table-row:last-child {
+            border-bottom: none;
+        }
+
+        /* Encabezados de tabla */
+        .table-header {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+            padding: 0.75rem 0;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Columnas con bordes verticales */
+        .table-cell {
+            border-right: 1px solid #e9ecef;
+            padding: 0 0.5rem;
+        }
+
+        .table-cell:last-child {
+            border-right: none;
+        }
+
+        /* Alternancia de colores en filas */
+        .table-row:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        .table-row:nth-child(odd) {
+            background-color: #ffffff;
+        }
+
+        /* Hover mejorado para filas */
+        .table-row:hover {
+            background-color: #e3f2fd !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
         }
 
         /* 1. Fondo general de la aplicación */
@@ -135,6 +218,39 @@ def load_css():
         /* 4. Quitar el borde por defecto del expander para que se vea más limpio */
         [data-testid="stExpander"] > summary {
             border: none;
+        }
+
+        /* === MEJORAS PARA MODALES === */
+        
+        /* Modales con mejor espaciado */
+        div[data-testid="stModal"] {
+            padding: 2rem !important;
+        }
+
+        div[data-testid="stModal"] > div {
+            border-radius: 16px !important;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
+        }
+
+        /* Mejor espaciado en formularios de modal */
+        div[data-testid="stModal"] div[data-testid="stForm"] {
+            padding: 1.5rem !important;
+            margin-bottom: 1rem !important;
+        }
+
+        /* === SEPARADORES VISUALES === */
+        
+        .section-divider {
+            border-top: 2px solid #e9ecef;
+            margin: 2rem 0 1.5rem 0;
+            padding-top: 1.5rem;
+        }
+
+        .group-separator {
+            background: linear-gradient(90deg, #0d47a1 0%, #1565c0 100%);
+            height: 3px;
+            border-radius: 1.5px;
+            margin: 1.5rem 0 1rem 0;
         }
     </style>
     """, unsafe_allow_html=True)

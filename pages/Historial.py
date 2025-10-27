@@ -6,11 +6,45 @@ import json
 from utils.css import load_css
 # --- INICIO DEL BLOQUE "PORTERO" (Versión 2.0) ---
 
-# 1. Verificar si el usuario ha iniciado sesión
+# 1. Sistema de timeout y verificación de sesión
+import datetime as dt
+
+if "last_activity" not in st.session_state:
+    st.session_state.last_activity = dt.datetime.now()
+
+if "session_timeout_minutes" not in st.session_state:
+    st.session_state.session_timeout_minutes = 60
+
+# Verificar si el usuario ha iniciado sesión y no ha expirado la sesión
 if "logged_in" not in st.session_state or not st.session_state.logged_in:
+    st.set_page_config(page_title="Acceso Denegado", layout="centered")
+    
+    # Ocultar sidebar completamente
+    st.markdown("""
+        <style>
+            [data-testid="stSidebar"] {
+                display: none;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+    
     st.warning("🔒 Por favor, inicia sesión para ver esta página.")
     st.page_link("sistemaR.py", label="Ir a la página de Login", icon="🔑")
     st.stop()
+
+# Verificar timeout
+if st.session_state.logged_in:
+    now = dt.datetime.now()
+    time_since_activity = (now - st.session_state.last_activity).total_seconds() / 60
+    
+    if time_since_activity > st.session_state.session_timeout_minutes:
+        st.session_state.logged_in = False
+        st.session_state.username = None
+        st.session_state.nombre_completo = None
+        st.session_state.show_timeout_message = True
+        st.rerun()
+    else:
+        st.session_state.last_activity = now
 
 # 2. Si el usuario SÍ está logueado, mostrar el menú y el botón de logout
 with st.sidebar:
