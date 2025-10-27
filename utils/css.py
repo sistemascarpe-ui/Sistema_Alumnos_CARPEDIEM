@@ -238,7 +238,7 @@ def load_css():
             margin: 1.5rem 0 1rem 0;
         }
 
-        /* === PESTAÑAS CON CONTORNO Y TEXTO NARANJA === */
+        /* === PESTAÑAS CON CONTORNO Y TEXTO NARANJA (SIN RECUADRO NARANJA) === */
         
         /* Quitar fondo del contenedor de tabs */
         div[data-baseweb="tab-list"] {
@@ -261,7 +261,7 @@ def load_css():
             transition: all 0.2s ease !important;
         }
 
-        /* Pestaña activa - contorno naranja con letras naranja grandes */
+        /* Pestaña activa - contorno naranja con letras naranja grandes - SIN RECUADRO NARANJA */
         button[data-baseweb="tab"][aria-selected="true"] {
             background-color: white !important;
             border: 2px solid #FF9500 !important;
@@ -271,12 +271,28 @@ def load_css():
             font-size: 1.3rem !important;
         }
 
-        /* ANULAR RECUADRO NARANJA - Cambiar todos los divs internos */
-        button[data-baseweb="tab"][aria-selected="true"] > div,
-        button[data-baseweb="tab"][aria-selected="true"] > div > div,
-        button[data-baseweb="tab"][aria-selected="true"] > div > div > div {
+        /* ANULAR COMPLETAMENTE EL RECUADRO NARANJA DE STREAMLIT - Forzar todos los elementos internos */
+        button[data-baseweb="tab"][aria-selected="true"] * {
             background-color: white !important;
             background: white !important;
+            color: #FF9500 !important;
+        }
+
+        /* Específicamente para los divs internos */
+        button[data-baseweb="tab"][aria-selected="true"] > div,
+        button[data-baseweb="tab"][aria-selected="true"] > div > div,
+        button[data-baseweb="tab"][aria-selected="true"] > div > div > div,
+        button[data-baseweb="tab"][aria-selected="true"] > div > div > div > div {
+            background-color: white !important;
+            background: white !important;
+        }
+
+        /* Forzar que el texto se vea */
+        button[data-baseweb="tab"][aria-selected="true"] span,
+        button[data-baseweb="tab"][aria-selected="true"] p {
+            color: #FF9500 !important;
+            background-color: transparent !important;
+            background: transparent !important;
         }
 
         /* Hover en pestañas inactivas */
