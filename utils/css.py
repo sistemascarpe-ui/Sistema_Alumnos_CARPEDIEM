@@ -238,9 +238,14 @@ def load_css():
             margin: 1.5rem 0 1rem 0;
         }
 
-        /* === PESTAÑAS CON CONTORNO Y TEXTO NARANJA (SIN RECUADRO NARANJA) === */
+        /* === PESTAÑAS SIN RECUADRO NARANJA === */
         
-        /* Quitar fondo del contenedor de tabs */
+        /* Ocultar completamente el indicador por defecto de Streamlit */
+        div[data-testid="stTabs"] > div > div > div > div {
+            display: none !important;
+        }
+
+        /* Contenedor de tabs limpio */
         div[data-baseweb="tab-list"] {
             background-color: transparent !important;
             padding: 0 !important;
@@ -248,58 +253,51 @@ def load_css():
             margin-bottom: 1.5rem !important;
         }
 
-        /* Pestañas inactivas */
+        /* Pestañas inactivas - blancas con borde gris */
         button[data-baseweb="tab"] {
             background-color: white !important;
+            background: white !important;
             border: 2px solid #e9ecef !important;
             border-radius: 8px !important;
             padding: 0.75rem 1.5rem !important;
             margin: 0 0.5rem !important;
-            font-size: 1rem !important;
+            font-size: 1.1rem !important;
             font-weight: normal !important;
             color: #6c757d !important;
             transition: all 0.2s ease !important;
+            position: relative !important;
         }
 
-        /* Pestaña activa - contorno naranja con letras naranja grandes - SIN RECUADRO NARANJA */
+        /* Pestaña activa - SOLO contorno naranja, letras grandes naranjas, SIN fondo naranja */
         button[data-baseweb="tab"][aria-selected="true"] {
             background-color: white !important;
+            background: white !important;
             border: 2px solid #FF9500 !important;
             border-radius: 8px !important;
             color: #FF9500 !important;
             font-weight: 700 !important;
-            font-size: 1.3rem !important;
+            font-size: 1.4rem !important;
+            z-index: 1 !important;
         }
 
-        /* ANULAR COMPLETAMENTE EL RECUADRO NARANJA DE STREAMLIT - Forzar todos los elementos internos */
+        /* Forzar que NO haya ningún fondo coloreado en ningún elemento interno de la pestaña activa */
         button[data-baseweb="tab"][aria-selected="true"] * {
-            background-color: white !important;
-            background: white !important;
-            color: #FF9500 !important;
-        }
-
-        /* Específicamente para los divs internos */
-        button[data-baseweb="tab"][aria-selected="true"] > div,
-        button[data-baseweb="tab"][aria-selected="true"] > div > div,
-        button[data-baseweb="tab"][aria-selected="true"] > div > div > div,
-        button[data-baseweb="tab"][aria-selected="true"] > div > div > div > div {
-            background-color: white !important;
-            background: white !important;
-        }
-
-        /* Forzar que el texto se vea */
-        button[data-baseweb="tab"][aria-selected="true"] span,
-        button[data-baseweb="tab"][aria-selected="true"] p {
-            color: #FF9500 !important;
             background-color: transparent !important;
             background: transparent !important;
+        }
+
+        /* Espesíficamente anular cualquier div con fondo */
+        button[data-baseweb="tab"][aria-selected="true"] > div,
+        button[data-baseweb="tab"][aria-selected="true"] > div > div,
+        button[data-baseweb="tab"][aria-selected="true"] > div > div > div {
+            background: none !important;
+            background-color: transparent !important;
         }
 
         /* Hover en pestañas inactivas */
         button[data-baseweb="tab"]:hover:not([aria-selected="true"]) {
             color: #495057 !important;
             background-color: #f8f9fa !important;
-            border-radius: 8px !important;
             border-color: #dee2e6 !important;
         }
     </style>
