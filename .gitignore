@@ -45,6 +45,9 @@ credentials.json
 *.pfx
 hash_pass.py
 
+# Firma personal del sistema de recibos (NO subir al repositorio)
+utils/firma.jpg
+
 # Archivos de base de datos locales
 *.db
 *.sqlite

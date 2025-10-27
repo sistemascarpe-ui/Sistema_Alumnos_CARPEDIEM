@@ -2,6 +2,8 @@ import streamlit as st
 import psycopg2
 import pandas as pd
 import datetime
+import base64
+import io
 from fpdf import FPDF
 from num2words import num2words
 
@@ -140,11 +142,16 @@ def generar_recibo_pdf(folio, fecha, nombre_alumno, concepto, monto, metodo_pago
     # --- FIRMA ---
     pdf.ln(25)
     try:
-        # 3. Ruta de tu imagen de la firma
-        pdf.image('utils/firma.jpg', x=80, y=pdf.get_y(), w=50)
-        pdf.ln(15) # Ajusta este valor para el espacio después de la firma
-    except FileNotFoundError:
-        st.warning("No se encontró la imagen de la firma.")
+        # Cargar firma desde Streamlit Secrets (Base64 encriptada)
+        firma_base64 = st.secrets["FIRMA_BASE64"]
+        firma_data = base64.b64decode(firma_base64)
+        firma_stream = io.BytesIO(firma_data)
+        
+        # Insertar la firma en el PDF
+        pdf.image(firma_stream, x=80, y=pdf.get_y(), w=50)
+        pdf.ln(15)
+    except (KeyError, Exception):
+        # Si no hay firma en los secrets, solo saltar la línea
         pdf.ln(15)
 
     pdf.cell(0, 1, '_________________________________', 0, 1, 'C')
