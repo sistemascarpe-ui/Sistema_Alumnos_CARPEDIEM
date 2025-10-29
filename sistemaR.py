@@ -104,10 +104,11 @@ if not st.session_state.logged_in:
     
     st.subheader("Por favor, inicia sesión para continuar")
 
+    st.markdown('<div class="login-form-container">', unsafe_allow_html=True)
     with st.form("login_form"):
         username = st.text_input("Usuario")
         password = st.text_input("Contraseña", type="password")
-        submitted = st.form_submit_button("Ingresar")
+        submitted = st.form_submit_button("Ingresar", type="primary")
         
         if submitted:
             nombre_usuario = check_login(username, password) 
@@ -120,6 +121,7 @@ if not st.session_state.logged_in:
                 st.rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # --- 3. SI SÍ HIZO LOGIN (Mostrar la app completa) ---
 else:
