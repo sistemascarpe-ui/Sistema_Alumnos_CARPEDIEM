@@ -3,7 +3,7 @@ import psycopg2
 import pandas as pd
 import datetime
 import json
-from streamlit_keyup import st_keyup  # pyright: ignore[reportMissingImports]
+
 
 # Asumiendo que tienes utils.css
 from utils.css import load_css
