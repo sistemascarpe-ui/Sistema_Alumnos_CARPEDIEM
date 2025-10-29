@@ -3,7 +3,7 @@ import psycopg2
 import pandas as pd
 import datetime
 import json
-from streamlit_keyup import st_keyup
+from streamlit_keyup import st_keyup  # pyright: ignore[reportMissingImports]
 
 # Asumiendo que tienes utils.css
 from utils.css import load_css
@@ -197,7 +197,7 @@ with tab_alumnos:
             status_filter = st.selectbox("Filtrar por Status", options=status_options, index=0)
 
         with col_filter3:
-            search_term = st_keyup( 
+            search_term = st.text_input( 
             "Buscar Alumno", 
             placeholder="🔍 Buscar por nombre, matrícula o correo...",
             key="search_alumnos_realtime",
@@ -380,7 +380,7 @@ with tab_grupos:
             query_grupos = "SELECT g.*, p.nombre_completo as nombre_profesor FROM Grupos g LEFT JOIN Profesores p ON g.profesor_id = p.profesor_id ORDER BY g.status_grupo ASC, g.nombre_grupo ASC"
             df_grupos = pd.read_sql(query_grupos, conn)
             
-            search_term_grupos = st_keyup(
+            search_term_grupos = st.text_input(
                 "🔍 Buscar Grupo por nombre", 
                 key="search_grupos_realtime",
                 placeholder="Escribe para filtrar grupos...",
@@ -469,7 +469,7 @@ with tab_profesores:
         try:
             df_profesores = pd.read_sql("SELECT * FROM Profesores ORDER BY profesor_id ASC", conn)
             
-            search_profesores = st_keyup(
+            search_profesores = st.text_input(
             "🔍 Buscar Profesor", 
             key="search_profesores_realtime",
             placeholder="Escribe para filtrar profesores...",
