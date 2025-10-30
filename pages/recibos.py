@@ -8,6 +8,7 @@ from fpdf import FPDF
 from num2words import num2words
 
 from utils.css import load_css
+load_css()
 # --- INICIO DEL BLOQUE "PORTERO" (Versión 2.0) ---
 
 # 1. Sistema de timeout y verificación de sesión

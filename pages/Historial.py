@@ -4,6 +4,7 @@ import psycopg2
 import json
 
 from utils.css import load_css
+load_css()
 # --- INICIO DEL BLOQUE "PORTERO" (Versión 2.0) ---
 
 # 1. Sistema de timeout y verificación de sesión

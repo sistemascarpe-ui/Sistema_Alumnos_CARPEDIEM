@@ -7,11 +7,14 @@ import json
 
 # Asumiendo que tienes utils.css
 from utils.css import load_css
+load_css()
 
 # --- CONFIGURACIÓN INICIAL Y CSS ---
-# st.set_page_config debe ser lo primero y solo una vez
 st.set_page_config(page_title="Administración", layout="wide")
-load_css() # Cargar CSS una sola vez
+
+
+
+
 
 # --- INICIO DEL BLOQUE "PORTERO" (Simplificado para páginas) ---
 
@@ -142,7 +145,7 @@ with tab_alumnos:
     with st.expander(" Registrar Nuevo Alumno"):
         with st.form("nuevo_alumno_form", clear_on_submit=True):
             st.subheader("Datos del Nuevo Alumno")
-            df_grupos_options = pd.read_sql("SELECT grupo_id, nombre_grupo FROM Grupos WHERE status_grupo = 'Activo' ORDER BY nombre_grupo ASC", conn)
+            df_grupos_options = pd.read_sql("SELECT grupo_id, nombre_grupo FROM Grupos ORDER BY nombre_grupo ASC", conn)
 
             col1, col2 = st.columns(2)
             with col1:
@@ -197,15 +200,26 @@ with tab_alumnos:
             status_filter = st.selectbox("Filtrar por Status", options=status_options, index=0)
 
         with col_filter3:
-            search_term = st.text_input( 
-            "Buscar Alumno", 
-            placeholder="🔍 Buscar por nombre, matrícula o correo...",
-            key="search_alumnos_realtime",
-            value=st.session_state.get("search_value_alumnos", "")
-        )
-        st.session_state["search_value_alumnos"] = search_term
-        
+            button_search_col, search_input_col = st.columns([0.1, 0.9])
+            with button_search_col:
+                st.markdown("<br>", unsafe_allow_html=True) # Para alineación vertical
+                if st.button("🔍", key="btn_search_alumnos", use_container_width=True):
+                    st.session_state["perform_search_alumnos"] = True
+            with search_input_col:
+                search_term_input = st.text_input(
+                    "Buscar Alumno",
+                    placeholder="Buscar por nombre, matrícula o correo...",
+                    key="search_alumnos_realtime",
+                    value=st.session_state.get("search_value_alumnos", "")
+                )
 
+        # Actualizar el estado de la sesión con el valor actual del input
+        st.session_state["search_value_alumnos"] = search_term_input
+        search_term = st.session_state.get("search_value_alumnos", "") # Usar esto para el filtrado
+
+        # Inicializar perform_search_alumnos si no está presente
+        if "perform_search_alumnos" not in st.session_state:
+            st.session_state["perform_search_alumnos"] = False
 
     try:
         query_alumnos = "SELECT a.*, g.nombre_grupo FROM Alumnos a LEFT JOIN Inscripciones i ON a.alumno_id = i.alumno_id LEFT JOIN Grupos g ON i.grupo_id = g.grupo_id"
@@ -234,14 +248,16 @@ with tab_alumnos:
         query_alumnos += " ORDER BY g.nombre_grupo ASC, a.nombre_completo ASC;"
         df_alumnos_raw = pd.read_sql(query_alumnos, conn, params=tuple(params))
 
+        # Apply filter if there's a search term
         if search_term and search_term.strip():
             search_term_clean = search_term.strip()
             df_alumnos_raw = df_alumnos_raw[
-                df_alumnos_raw["nombre_completo"].str.contains(search_term_clean, case=False, na=False) | 
-                df_alumnos_raw["matricula"].str.contains(search_term_clean, case=False, na=False) | 
+                df_alumnos_raw["nombre_completo"].str.contains(search_term_clean, case=False, na=False) |
+                df_alumnos_raw["matricula"].str.contains(search_term_clean, case=False, na=False) |
                 df_alumnos_raw["correo"].str.contains(search_term_clean, case=False, na=False)
             ]
-        
+        # If search_term is empty, df_alumnos_raw remains the full list (unfiltered)
+        # The button "🔍" will just trigger a rerun, which will re-apply this logic.
         if df_alumnos_raw.empty:
             st.info("No se encontraron alumnos con los filtros seleccionados.")
         else:
@@ -249,7 +265,7 @@ with tab_alumnos:
             # (CORREGIDO): Función para renderizar el botón de editar (Amarillo)
             def render_acciones_alumno(row):
                 st.markdown('<div class="btn-warning">', unsafe_allow_html=True)
-                st.button("✏️ Editar", key=f"edit_alumno_{row['alumno_id']}", on_click=open_modal, args=("edit_alumno", row['alumno_id']), use_container_width=True)
+                st.button("✏️ Editar", key=f"edit_alumno_{row['alumno_id']}", on_click=open_modal, args=("edit_alumno", row['alumno_id']), use_container_width=True, type="secondary")
                 st.markdown('</div>', unsafe_allow_html=True)
 
             grupos_en_data = df_alumnos_raw['nombre_grupo'].fillna("Alumnos sin grupo").unique()
@@ -269,8 +285,8 @@ with tab_alumnos:
                 }
                 st.markdown('<div class="table-container">', unsafe_allow_html=True)
                 display_data_table(
-                    df=df_grupo_actual,
-                    col_widths=[2, 4, 1.5, 4, 4, 3, 3, 2, 3],
+                    df_grupo_actual,
+                    col_widths=[0.1, 0.2, 0.1, 0.15, 0.15, 0.1, 0.1, 0.1],
                     headers=["Acciones", "Nombre", "Grupo", "Status", "Certificado", "Matrícula", "Correo", "Teléfono", "Fecha Nacimiento"],
                     custom_renderers=renderers
                 )
@@ -380,13 +396,20 @@ with tab_grupos:
             query_grupos = "SELECT g.*, p.nombre_completo as nombre_profesor FROM Grupos g LEFT JOIN Profesores p ON g.profesor_id = p.profesor_id ORDER BY g.status_grupo ASC, g.nombre_grupo ASC"
             df_grupos = pd.read_sql(query_grupos, conn)
             
-            search_term_grupos = st.text_input(
-                "🔍 Buscar Grupo por nombre", 
-                key="search_grupos_realtime",
-                placeholder="Escribe para filtrar grupos...",
-                value=st.session_state.get("search_value_grupos", "")
-            )
-            st.session_state["search_value_grupos"] = search_term_grupos
+            button_col_grupos, search_col_grupos = st.columns([0.1, 0.9])
+            with button_col_grupos:
+                st.markdown("<br>", unsafe_allow_html=True) # Para alineación vertical
+                if st.button("🔍", key="btn_search_grupos", use_container_width=True):
+                    st.session_state["perform_search_grupos"] = True
+            with search_col_grupos:
+                search_term_grupos_input = st.text_input(
+                    "Buscar Grupo por nombre", 
+                    key="search_grupos_realtime",
+                    placeholder="Escribe para filtrar grupos...",
+                    value=st.session_state.get("search_value_grupos", "")
+                )
+            st.session_state["search_value_grupos"] = search_term_grupos_input
+            search_term_grupos = st.session_state.get("search_value_grupos", "")
 
             if search_term_grupos and search_term_grupos.strip():
                 df_grupos = df_grupos[df_grupos['nombre_grupo'].str.contains(search_term_grupos.strip(), case=False, na=False)]
@@ -406,7 +429,7 @@ with tab_grupos:
                     with col1:
                         # Botón Amarillo (Editar)
                         st.markdown('<div class="btn-warning">', unsafe_allow_html=True)
-                        st.button("✏️ Editar", key=f"edit_grupo_{row['grupo_id']}", on_click=open_modal, args=("edit_grupo", row['grupo_id']), use_container_width=True)
+                        st.button("✏️ Editar", key=f"edit_grupo_{row['grupo_id']}", on_click=open_modal, args=("edit_grupo", row['grupo_id']), use_container_width=True, type="secondary")
                         st.markdown('</div>', unsafe_allow_html=True)
                     with col2:
                         # Botón Rojo (Finalizar)
@@ -469,17 +492,29 @@ with tab_profesores:
         try:
             df_profesores = pd.read_sql("SELECT * FROM Profesores ORDER BY profesor_id ASC", conn)
             
-            search_profesores = st.text_input(
-            "🔍 Buscar Profesor", 
-            key="search_profesores_realtime",
-            placeholder="Escribe para filtrar profesores...",
-            value=st.session_state.get("search_value_profesores", "")
-            )
-            st.session_state["search_value_profesores"] = search_profesores
-            
-            
-            if search_profesores and search_profesores.strip():
-                df_profesores = df_profesores[df_profesores['nombre_completo'].str.contains(search_profesores.strip(), case=False, na=False)]
+            button_search_col_prof, search_input_col_prof = st.columns([0.1, 0.9])
+            with button_search_col_prof:
+                st.markdown("<br>", unsafe_allow_html=True) # Para alineación vertical
+                if st.button("🔍", key="btn_search_profesores", use_container_width=True):
+                    st.session_state["perform_search_profesores"] = True
+            with search_input_col_prof:
+                search_term_input_prof = st.text_input(
+                    "Buscar Profesor",
+                    placeholder="Escribe para filtrar profesores...",
+                    key="search_profesores_realtime",
+                    value=st.session_state.get("search_value_profesores", "")
+                )
+
+            # Actualizar el estado de la sesión con el valor actual del input
+            st.session_state["search_value_profesores"] = search_term_input_prof
+            search_term_prof = st.session_state.get("search_value_profesores", "")
+
+            # Apply filter if there's a search term
+            if search_term_prof and search_term_prof.strip():
+                search_term_clean_prof = search_term_prof.strip()
+                df_profesores = df_profesores[df_profesores['nombre_completo'].str.contains(search_term_clean_prof, case=False, na=False)]
+            # If search_term_prof is empty, df_profesores remains the full list (unfiltered)
+            # The button "🔍" will just trigger a rerun, which will re-apply this logic.
 
             # (CORREGIDO): Función de renderizado con los colores solicitados
             def render_acciones_profesor(row):
@@ -487,7 +522,7 @@ with tab_profesores:
                 with col1:
                     # Botón Amarillo (Editar)
                     st.markdown('<div class="btn-warning">', unsafe_allow_html=True)
-                    st.button("✏️ Editar", key=f"edit_prof_{row['profesor_id']}", on_click=open_modal, args=("edit_profesor", row['profesor_id']), use_container_width=True)
+                    st.button("✏️ Editar", key=f"edit_prof_{row['profesor_id']}", on_click=open_modal, args=("edit_profesor", row['profesor_id']), use_container_width=True, type="secondary")
                     st.markdown('</div>', unsafe_allow_html=True)
                 with col2:
                     # Botón Rojo (Baja)
@@ -513,7 +548,7 @@ with tab_profesores:
 @st.dialog("✏️ Editar Alumno")
 def modal_editar_alumno(alumno_data, conn):
     # ... (código de carga de datos del modal) ...
-    df_grupos_options = pd.read_sql("SELECT grupo_id, nombre_grupo FROM Grupos WHERE status_grupo = 'Activo' ORDER BY nombre_grupo ASC", conn)
+    df_grupos_options = pd.read_sql("SELECT grupo_id, nombre_grupo FROM Grupos ORDER BY nombre_grupo ASC", conn)
     opciones_grupo = {0: "Sin Asignar"}
     opciones_grupo.update(pd.Series(df_grupos_options.nombre_grupo.values, index=df_grupos_options.grupo_id.astype(int)).to_dict())
     current_grupo_id = 0
@@ -542,17 +577,12 @@ def modal_editar_alumno(alumno_data, conn):
 
         c1, c2 = st.columns(2)
         
-        # (CORREGIDO): Botón Verde (Actualizar)
         with c1:
-            st.markdown('<div class="btn-success">', unsafe_allow_html=True)
             submitted = st.form_submit_button("Actualizar", use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
         
         # (CORREGIDO): Botón Rojo (Cancelar)
         with c2:
-            st.markdown('<div class="btn-danger">', unsafe_allow_html=True)
             cancelled = st.form_submit_button("Cancelar", use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
 
         if submitted:
             # ... (lógica de actualización) ...
@@ -601,16 +631,10 @@ def modal_editar_grupo(grupo_data, conn):
         with col2: fecha_termino = st.date_input("Fecha de Término", value=pd.to_datetime(grupo_data["fecha_termino"]))
         
         c1, c2 = st.columns(2)
-        # (CORREGIDO): Botón Verde (Actualizar)
         with c1:
-            st.markdown('<div class="btn-success">', unsafe_allow_html=True)
-            submitted = c1.form_submit_button("Actualizar", use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-        # (CORREGIDO): Botón Rojo (Cancelar)
+            submitted = st.form_submit_button("Actualizar", use_container_width=True)
         with c2:
-            st.markdown('<div class="btn-danger">', unsafe_allow_html=True)
-            cancelled = c2.form_submit_button("Cancelar", use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+            cancelled = st.form_submit_button("Cancelar", use_container_width=True)
 
         if submitted:
             # ... (lógica de actualización) ...
@@ -644,9 +668,10 @@ def modal_finalizar_grupo(grupo_id, conn):
         confirm_clicked = st.button("Confirmar Finalización", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
     
-    # (CORREGIDO): Botón Gris (Cancelar - Más seguro para UX)
-    with col2:
-        cancel_clicked = st.button("Cancelar", use_container_width=True, type="secondary")
+    # (CORREGIDO): Botón 'Cancelar' en modal_finalizar_grupo con un div con la clase 'modal-cancel-button' para aplicar estilos específicos.
+    st.markdown('<div class="modal-cancel-button">', unsafe_allow_html=True)
+    cancel_clicked = st.button("Cancelar", key="cancel_finalizar_grupo", use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     if confirm_clicked:
         try:

@@ -127,7 +127,7 @@ def load_css():
     div[data-testid="stSelectbox"] {
         width: 100% !important;
         height: auto !important;
-        min-height: 40px !important; 
+        min-height: 40px !important;
     }
     div[data-testid="stSelectbox"] div[data-baseweb="select"] {
         width: 100% !important;
@@ -142,7 +142,7 @@ def load_css():
         align-items: center !important;
     }
     div[data-testid="stSelectbox"] div[data-baseweb="select"] > div > div {
-        font-size: 14px !important; 
+        font-size: 14px !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
@@ -154,11 +154,18 @@ def load_css():
     /* === 4. BOTONES (¡¡ESTILO GHOST ACTUALIZADO!!) === */
     /* ================================================================== */
     
+    button {
+        border: 2px solid #1500FF !important; /* Borde inicial */
+        transition: all 0.2s ease !important;
+    }
+    button:hover {
+        border-color: #FF8400 !important; /* Borde al pasar el cursor */
+    }
     /* --- BOTÓN AZUL SÓLIDO (PRIMARY) --- */
     /* Se usa con type="primary" en st.button o st.form_submit_button */
-    /* Perfecto para Login, Registro, Logout (como pediste) */
-    button[kind="primary"] {
-        background-color: #1565c0 !important;
+    /* Perfecto */
+    button[kind="primary"], button[kind="primaryFormSubmit"] {
+        background-color: #000896 !important; /* Nuevo Azul */
         color: white !important;
         border: none !important;
         border-radius: 8px !important;
@@ -166,207 +173,8 @@ def load_css():
         font-weight: 600 !important;
         transition: all 0.2s ease !important;
     }
-    button[kind="primary"]:hover {
-        background-color: #0d47a1 !important;
+    button[kind="primary"]:hover, button[kind="primaryFormSubmit"]:hover {
+        background-color: #00067A !important; /* Azul más oscuro al hover */
     }
-
-    /* --- BOTÓN GRIS SÓLIDO (SECONDARY) --- */
-    /* Se usa con type="secondary". Bueno para 'Cancelar' en modales peligrosos */
-    button[kind="secondary"] {
-        background-color: #6c757d !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 8px !important;
-        padding: 0.5rem 1rem !important;
-        font-weight: 600 !important;
-        transition: all 0.2s ease !important;
-    }
-    button[kind="secondary"]:hover {
-        background-color: #5a6268 !important;
-    }
-    
-    /* --- NUEVOS BOTONES "GHOST" (Transparentes + Hover) --- */
-    /* MODO DE USO en Python:
-       st.markdown('<div class="btn-warning">', unsafe_allow_html=True)
-       st.button("Editar", use_container_width=True)
-       st.markdown('</div>', unsafe_allow_html=True)
-    */
-
-    /* Base para botones ghost (afecta a st.button Y st.form_submit_button) */
-    .btn-success button,
-    .btn-warning button,
-    .btn-danger button {
-        background-color: transparent !important;
-        border-width: 2px !important;
-        border-style: solid !important;
-        font-weight: 600 !important;
-        border-radius: 8px !important;
-        padding: 0.4rem 1rem !important;
-        transition: all 0.2s ease-in-out !important;
-    }
-
-    /* VERDE (Success) - Restablecer, Actualizar */
-    .btn-success button {
-        border-color: #28a745 !important;
-        color: #28a745 !important;
-    }
-    .btn-success button:hover,
-    .btn-success button:focus {
-        background-color: #28a745 !important;
-        color: white !important;
-    }
-
-    /* AMARILLO (Warning) - Editar */
-    .btn-warning button {
-        border-color: #ffc107 !important;
-        color: #ffc107 !important;
-    }
-    .btn-warning button:hover,
-    .btn-warning button:focus {
-        background-color: #ffc107 !important;
-        color: #212529 !important; /* Texto oscuro para hover amarillo */
-    }
-
-    /* ROJO (Danger) - Finalizar, Baja, Cancelar */
-    .btn-danger button {
-        border-color: #dc3545 !important;
-        color: #dc3545 !important;
-    }
-    .btn-danger button:hover,
-    .btn-danger button:focus {
-        background-color: #dc3545 !important;
-        color: white !important;
-    }
-
-    /* Estilo específico para el botón de login */
-    .login-form-container button[kind="primary"] {
-        background-color: #1565c0 !important;
-        color: white !important;
-        border: none !important;
-    }
-    .login-form-container button[kind="primary"]:hover {
-        background-color: #0d47a1 !important;
-    }
-    
-    /* ================================================================== */
-    /* === 5. ESTILO DE TABLA (GRID CLÁSICO SIMPLE) === */
-    /* ================================================================== */
-
-    /* --- (A) El "div" contenedor principal de la tabla --- */
-    .table-container {
-        background-color: #ffffff;      /* Fondo blanco */
-        border: 1px solid #e0e0e0;   /* Un solo borde exterior */
-        border-radius: 12px;            /* Esquinas redondeadas para el contenedor */
-        box-shadow: 0 6px 20px rgba(0,0,0,0.08); /* Sombra más pronunciada */
-        overflow: hidden;               /* Para que las esquinas redondeadas funcionen */
-        margin-bottom: 2rem;
-    }
-
-    /* --- (B) Filas internas (las que crea st.container(border=True)) --- */
-    .table-container [data-testid="stContainer"][style*="border"] {
-        /* ¡RESET! Quitamos todos los estilos de "tarjeta" */
-        background-color: transparent;
-        box-shadow: none;
-        border-radius: 0;
-        border: none; /* Quitamos el borde que pone Streamlit */
-        margin-bottom: 0;
-        padding: 0.5rem 0 !important; /* Ajuste de padding */
-        
-        /* ¡LÍNEA HORIZONTAL! */
-        border-bottom: 1px solid #e0e0e0; /* La línea divisoria horizontal */
-    }
-
-    /* --- (C) Fila de Cabecera --- */
-    .table-container > [data-testid="stContainer"][style*="border"]:first-of-type {
-        background-color: #f0f4f8; /* Fondo gris claro para la cabecera */
-        font-weight: 700; /* Más negrita */
-        color: #343a40; /* Color de texto más oscuro */
-        border-bottom: 2px solid #d0d0d0; /* Línea más gruesa para el header */
-        padding: 0.75rem 0 !important; /* Ajuste de padding */
-    }
-
-    /* --- (D) Quitar línea horizontal de la última fila --- */
-    .table-container > [data-testid="stContainer"][style*="border"]:last-of-type {
-        border-bottom: none; /* La última fila no necesita línea abajo */
-    }
-
-    /* --- (E) ¡¡LÍNEAS VERTICALES!! (Las celdas) --- */
-    .table-container [data-testid="stContainer"][style*="border"] div[data-testid="stHorizontalBlock"] > div[data-testid="stVerticalBlock"] {
-        /* ¡LÍNEA VERTICAL DIVISORA! */
-        border-right: 1px solid #e0e0e0; /* Borde vertical sutil */
-        
-        /* Padding interno de la celda */
-        padding: 0.75rem 0.75rem !important; 
-
-        /* Alineación vertical */
-        display: flex;
-        align-items: center;
-        min-height: 56px; /* Altura mínima de fila aumentada */
-    }
-
-    /* Quita la línea vertical de la ÚLTIMA columna (celda) */
-    .table-container [data-testid="stContainer"][style*="border"] div[data-testid="stHorizontalBlock"] > div[data-testid="stVerticalBlock"]:last-child {
-        border-right: none !important;
-    }
-    
-    /* --- (F) Ajustes para widgets (Botones, Selects, Texto) --- */
-
-    /* Ajuste para los selectbox (Status, Certificado) */
-    .table-container div[data-testid="stSelectbox"] {
-         width: 100% !important;
-         min-height: 0 !important;
-         height: auto !important;
-    }
-    .table-container div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
-         min-height: 0 !important;
-         height: 38px !important; 
-         padding-top: 0.2rem !important;
-         padding-bottom: 0.2rem !important;
-         border-color: #d0d7de !important;
-    }
-    
-    /* Ajuste para el texto simple (st.write) */
-    .table-container [data-testid="stMarkdown"] {
-        flex: 1;           /* Hace que el contenedor de texto crezca */
-        min-width: 0;      /* ¡¡LA MAGIA!! Permite que el texto se encoja y se ajuste */
-    }
-    .table-container [data-testid="stMarkdown"] p {
-        margin: 0;
-        padding: 0;
-        word-wrap: break-word; /* Fuerza el ajuste de palabra */
-        overflow-wrap: break-word; 
-        white-space: normal; /* Asegura el ajuste */
-    }
-
-    /* ================================================================== */
-    /* === 6. ALERTAS Y DIÁLOGOS === */
-    /* ================================================================== */
-    [data-testid="stAlert"] {
-        border-left: 4px solid #f59f00 !important;
-        background: #fff7e6 !important;
-    }
-    [data-testid="stAlert"] button[kind="primary"] {
-        background-color: #f59f00 !important;
-        color: #2129 !important;
-    }
-    [data-testid="stAlert"] button[kind="primary"]:hover {
-        background-color: #e67700 !important;
-        color: #fff !important;
-    }
-
-    /* Scrollbar */
-    ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-    }
-    ::-webkit-scrollbar-thumb {
-        background: #b0b7c3;
-        border-radius: 10px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-        background: #8b97a8;
-    }
-
     </style>
     """, unsafe_allow_html=True)
-

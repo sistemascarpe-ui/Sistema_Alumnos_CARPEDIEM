@@ -3,7 +3,11 @@ import psycopg2
 import pandas as pd
 import datetime
 import bcrypt
+
 from utils.css import load_css
+
+
+
 
 # --- LÓGICA DE CONEXIÓN ROBUSTA ---
 @st.cache_resource
@@ -81,18 +85,27 @@ if st.session_state.logged_in:
 # --- 2. SI NO HA HECHO LOGIN (Mostrar solo el formulario) ---
 if not st.session_state.logged_in:
     
-    st.set_page_config(page_title="Inicio de Sesión", layout="centered")
-    load_css()
-    
-    # --- CAMBIO CLAVE (Soluciona Problema 2) ---
-    # Inyecta CSS para OCULTAR la barra lateral por completo
+    st.set_page_config(page_title="Inicio de Sesión", layout="centered", initial_sidebar_state="collapsed")
     st.markdown("""
         <style>
-            [data-testid="stSidebar"] {
-                display: none;
+            [data-testid="stSidebar"] { display: none; }
+            button[kind="primaryFormSubmit"] {
+                background-color: #000896 !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 8px !important;
+                padding: 0.5rem 1rem !important;
+                font-weight: 600 !important;
+                transition: all 0.2s ease !important;
+            }
+            button[kind="primaryFormSubmit"]:hover {
+                background-color: #00067A !important;
             }
         </style>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+    
+    
+
     
     st.title("Sistema de Gestión 🔑")
     
