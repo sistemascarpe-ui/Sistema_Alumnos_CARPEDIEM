@@ -31,10 +31,10 @@ def load_css():
     
     /* El contenedor de las pestañas */
     div[data-baseweb="tab-list"] {
-        border-bottom: 2px solid #0d47a1 !important; /* Línea base azul marino */
-        margin-bottom: 0 !important; /* Eliminado el margen inferior */
-        justify-content: center !important; /* ¡¡CENTRADO!! */
-    }
+    border-bottom: 2px solid #0d47a1 !important; /* Línea base azul marino */
+    margin-bottom: 0 !important; /* Eliminado el margen inferior */
+    justify-content: center !important; /* ¡¡CENTRADO!! */
+}
     
     /* Cada pestaña (botón) */
     button[data-baseweb="tab"] {
@@ -49,6 +49,8 @@ def load_css():
         font-weight: 600 !important;
         position: relative;
         border-right: 1px solid #d0d7de; /* LÍNEA DIVISORA DERECHA */
+        outline: none !important;
+        box-shadow: none !important;
     }
 
     /* Quitar borde a la última pestaña */
@@ -59,7 +61,7 @@ def load_css():
     /* Pestaña SELECCIONADA */
     button[data-baseweb="tab"][aria-selected="true"] {
         color: #0d47a1 !important; /* ¡¡TEXTO AZUL MARINO!! */
-        border-bottom: 3px solid transparent !important; /* ¡¡LÍNEA AZUL MARINO!! */
+        border: none !important; /* Eliminar todos los bordes */
     }
     
     /* --- (Resto de Sección 2) --- */
@@ -160,6 +162,10 @@ def load_css():
     }
     button:hover {
         border-color: #FF8400 !important; /* Borde al pasar el cursor */
+    }
+    button[data-baseweb="tab"]:hover {
+        border-color: transparent !important; /* Asegura que otros bordes sean transparentes */
+        border-bottom-color: #0d47a1 !important; /* Borde inferior azul al pasar el cursor en pestañas */
     }
     /* --- BOTÓN AZUL SÓLIDO (PRIMARY) --- */
     /* Se usa con type="primary" en st.button o st.form_submit_button */
