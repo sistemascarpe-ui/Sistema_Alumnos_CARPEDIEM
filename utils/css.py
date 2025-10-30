@@ -16,10 +16,13 @@ def load_css():
         color: #343a40 !important;
         font-family: 'Segoe UI', Tahoma, sans-serif !important;
         padding: 1.2rem !important;
+        max-width: 100% !important;
+        margin: 0 auto !important;
     }
     [data-testid="stBlock"] > div:first-child {
         background-color: transparent !important;
         padding: 0 !important;
+        width: 100% !important;
     }
     .st-emotion-cache-1y4p8pa {
         background-color: transparent !important;
@@ -97,6 +100,16 @@ def load_css():
         padding: 1.5rem;
         margin-bottom: 2rem;
         border: 1px solid #e0e0e0;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    @media (max-width: 768px) {
+        .stApp {
+            padding: 0.5rem !important;
+        }
+        .floating-card {
+            padding: 1rem !important;
+        }
     }
 
     /* ================================================================== */
