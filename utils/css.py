@@ -3,10 +3,14 @@ import streamlit as st
 def load_css():
     st.markdown("""
     <style>
+    [data-testid="stSidebarNavItems"] {
+        display: none;
+    }
+
     /* ================================================================== */
     /* === 1. CONFIGURACIÓN GENERAL Y MENÚ DOBLE FIX === */
     /* ================================================================== */
-    [data-testid="stSidebarNavItems"] { display: none; }
+
 
     body {
         background-color: #f0f4f8;
@@ -128,6 +132,8 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
         }
     }
 
+
+
     /* ================================================================== */
     /* === 3. FORMULARIOS, EXPANDERS Y FILTROS === */
     /* ================================================================== */
@@ -225,5 +231,19 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
         max-width: 100% !important;
         height: auto !important;
     }
+
+    /* ================================================================== */
+    /* === 6. ALINEACIÓN DE BOTONES E INPUTS === */
+    /* ================================================================== */
+    .st-emotion-cache-1r6slb0 > div > div:has(div[data-testid="stTextInput"]) + div[data-testid="stButton"] {
+        display: flex;
+        align-items: center;
+        gap: 10px; /* Espacio entre el input y el botón */
+    }
+
+    .st-emotion-cache-1r6slb0 > div > div:has(div[data-testid="stTextInput"]) {
+        flex-grow: 1;
+    }
+
     </style>
     """, unsafe_allow_html=True)

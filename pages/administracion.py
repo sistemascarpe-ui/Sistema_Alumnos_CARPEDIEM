@@ -196,19 +196,19 @@ with tab_alumnos:
             status_filter = st.selectbox("Filtrar por Status", options=status_options, index=0)
 
         with col_filter3:
-            col_search_button, col_search_input = st.columns([0.1, 0.9])
+            st.write("") # Add vertical spacing to align with filters
+            col_search_button, col_search_input = st.columns([0.15, 0.85]) # Button first
             with col_search_button:
-                st.write("<br>", unsafe_allow_html=True) # Alineación vertical
-                if st.button("🔍", key="search_alumnos_button"):
+                if st.button("🔍", key="search_alumnos_button", use_container_width=True):
                     st.session_state["search_value_alumnos"] = st.session_state["search_alumnos_realtime"]
             with col_search_input:
                 search_term = st.text_input(
-                    "Buscar Alumno", 
+                    "Buscar Alumno",
                     placeholder="Buscar por nombre, matrícula o correo...",
                     key="search_alumnos_realtime",
-                    value=st.session_state.get("search_value_alumnos", "")
+                    value=st.session_state.get("search_value_alumnos", ""),
+                    label_visibility="collapsed" # Ocultar la etiqueta
                 )
-        # st.session_state["search_value_alumnos"] = search_term # Esta línea ya no es necesaria aquí
         
 
 
@@ -385,17 +385,17 @@ with tab_grupos:
             query_grupos = "SELECT g.*, p.nombre_completo as nombre_profesor FROM Grupos g LEFT JOIN Profesores p ON g.profesor_id = p.profesor_id ORDER BY g.status_grupo ASC, g.nombre_grupo ASC"
             df_grupos = pd.read_sql(query_grupos, conn)
             
-            col_search_button_grupos, col_search_input_grupos = st.columns([0.05, 0.95])
+            col_search_button_grupos, col_search_input_grupos = st.columns([0.1, 0.9])
             with col_search_button_grupos:
-                st.write("<br>", unsafe_allow_html=True) # Alineación vertical
-                if st.button("🔍", key="search_grupos_button"):
+                if st.button("🔍", key="search_grupos_button", use_container_width=True):
                     st.session_state["search_value_grupos"] = st.session_state["search_grupos_realtime"]
             with col_search_input_grupos:
                 search_term_grupos = st.text_input(
                     "Buscar Grupo por nombre", 
                     key="search_grupos_realtime",
                     placeholder="Escribe para filtrar grupos...",
-                    value=st.session_state.get("search_value_grupos", "")
+                    value=st.session_state.get("search_value_grupos", ""),
+                    label_visibility="collapsed" # Ocultar la etiqueta
                 )
             # st.session_state["search_value_grupos"] = search_term_grupos # Esta línea ya no es necesaria aquí
 
@@ -482,15 +482,15 @@ with tab_profesores:
             
             col_search_button_profesores, col_search_input_profesores = st.columns([0.05, 0.95])
             with col_search_button_profesores:
-                st.write("<br>", unsafe_allow_html=True) # Alineación vertical
-                if st.button("🔍", key="search_profesores_button"):
+                if st.button("🔍", key="search_profesores_button", use_container_width=True):
                     st.session_state["search_value_profesores"] = st.session_state["search_profesores_realtime"]
             with col_search_input_profesores:
                 search_profesores = st.text_input(
                 "Buscar Profesor", 
                 key="search_profesores_realtime",
                 placeholder="Escribe para filtrar profesores...",
-                value=st.session_state.get("search_value_profesores", "")
+                value=st.session_state.get("search_value_profesores", ""),
+                label_visibility="collapsed" # Ocultar la etiqueta
                 )
             # st.session_state["search_value_profesores"] = search_profesores # Esta línea ya no es necesaria aquí
             

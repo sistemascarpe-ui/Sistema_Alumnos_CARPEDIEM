@@ -7,8 +7,16 @@ import io
 from fpdf import FPDF
 from num2words import num2words
 
+# (Importante: Asumo que 'streamlit_keyup' ya NO es necesario,
+# ya que tu 'administracion.py' usa un st.button + st.text_input)
 from utils.css import load_css
+
+# --- CONFIGURACIÓN Y CSS ---
+# st.set_page_config debe ser lo primero, pero solo UNA VEZ por script.
+# La llamada en 'sistemaR.py' es la principal.
+# Aquí solo llamamos a load_css()
 load_css()
+
 # --- INICIO DEL BLOQUE "PORTERO" (Versión 2.0) ---
 
 # 1. Sistema de timeout y verificación de sesión
@@ -72,11 +80,12 @@ with st.sidebar:
         st.rerun()
         
 # --- FIN DEL BLOQUE "PORTERO" ---
-st.set_page_config(page_title="Recibos", layout="wide")
+
+# --- INICIO DE LA PÁGINA DE RECIBOS ---
+
+# (st.set_page_config ya no va aquí, se maneja arriba o en la app principal)
 st.title("Registro de Pagos y Recibos 🧾")
-
-
-load_css()
+# (load_css() ya se llamó al inicio)
 
 # --- LÓGICA DE CONEXIÓN ROBUSTA ---
 @st.cache_resource
@@ -91,7 +100,11 @@ def get_connection():
     except (psycopg2.InterfaceError, psycopg2.OperationalError, psycopg2.errors.InFailedSqlTransaction):
         # Si hay un error, hacer rollback y limpiar la caché
         if not conn.closed:
-            conn.rollback()
+            try:
+                if conn.status == psycopg2.extensions.STATUS_IN_TRANSACTION:
+                    conn.rollback()
+            except Exception:
+                pass # Ignorar errores en rollback
         st.cache_resource.clear()
         conn = init_connection()
     return conn
@@ -125,7 +138,7 @@ def generar_recibo_pdf(folio, fecha, nombre_alumno, concepto, monto, metodo_pago
         pdf.image('utils/info_contacto.png', x=30, y=pdf.get_y(), w=150)
         pdf.ln(15) # Más espacio después de la barra de contacto
 
-    except FileNotFoundError:
+    except Exception: # Captura cualquier error de imagen
         st.warning("No se encontraron las imágenes del logo/contacto.")
         pdf.set_font('Arial', 'B', 12)
         pdf.cell(0, 5, "CARPE DIEM MÉXICO", 0, 1, 'C')
@@ -197,7 +210,9 @@ def generar_recibo_pdf(folio, fecha, nombre_alumno, concepto, monto, metodo_pago
     return bytes(pdf.output())
 
 # --- FORMULARIO PARA REGISTRAR PAGO ---
-with st.expander("Registrar Nuevo Pago y Generar Recibo", expanded=True):
+
+# (SOLUCIÓN 1: 'expanded' cambiado a False)
+with st.expander("Registrar Nuevo Pago y Generar Recibo", expanded=False):
     conn = get_connection()
     st.write("")
     # --- Filtro por Grupo ---
@@ -266,8 +281,13 @@ with st.expander("Registrar Nuevo Pago y Generar Recibo", expanded=True):
                 st.info("Este alumno ya ha completado todos sus pagos.")
 
             
-            # Botón de envío
-            submitted = st.form_submit_button("Registrar Pago", disabled=(not conceptos_disponibles or not alumno_id))
+            # Botón de envío (tipo 'primary' para que sea azul)
+            submitted = st.form_submit_button(
+                "Registrar Pago", 
+                disabled=(not conceptos_disponibles or not alumno_id),
+                type="primary"
+            )
+            
             if submitted:
                 if not alumno_id or not concepto:
                     st.error("Por favor, selecciona un alumno y un concepto de pago.")
@@ -289,66 +309,125 @@ with st.expander("Registrar Nuevo Pago y Generar Recibo", expanded=True):
                             cur.execute(sql, (inscripcion_id, str(nuevo_folio), monto, fecha, concepto, metodo, 'Completo'))
                             conn.commit()
                             st.success(f"¡Pago registrado con folio {nuevo_folio}!")
-                            st.rerun()
+                            st.rerun() # Esto recargará la página (y el expander se quedará cerrado)
                     except Exception as e:
                         st.error(f"Ocurrió un error: {e}")
 
 # --- BOTÓN DE DESCARGA ---
 if 'pdf_a_descargar' in st.session_state:
-    st.download_button(label="✅ Descargar Recibo Generado", **st.session_state.pdf_a_descargar)
+    st.download_button(
+        label="✅ Descargar Recibo Generado", 
+        data=st.session_state.pdf_a_descargar["data"],
+        file_name=st.session_state.pdf_a_descargar["file_name"]
+    )
     del st.session_state.pdf_a_descargar
 
-st.markdown("---")
 
-# --- TABLA DE HISTORIAL DE PAGOS ---
-st.subheader("Historial de Pagos Registrados")
-try:
-    conn = get_connection()
-    # --- CONSULTA SIMPLIFICADA ---
-    query_pagos = """
-        SELECT p.folio, a.nombre_completo, p.metodo_pago, p.fecha_pago, 
-               p.monto, p.concepto, p.status_pago
-        FROM Pagos p
-        JOIN Inscripciones i ON p.inscripcion_id = i.inscripcion_id
-        JOIN Alumnos a ON i.alumno_id = a.alumno_id
-        ORDER BY p.folio DESC;
-    """
-    df_pagos = pd.read_sql(query_pagos, conn)
+# --- TABLA DE HISTORIAL DE PAGOS (SOLUCIÓN 2 y 3) ---
+# 1. Envolvemos todo en el st.container(border=True) para la "tarjeta"
+with st.container(border=True):
+    st.subheader("Historial de Pagos Registrados")
 
-    # Forzar a que el folio se muestre como texto en negro
-    df_pagos["folio"] = df_pagos["folio"].astype(str)
+    # 2. Replicamos la estructura de búsqueda de admin.py
+    col_search_button, col_search_input = st.columns([0.1, 0.9])
+    
+    with col_search_input:
+        search_term_input = st.text_input(
+            "Buscar por Folio o Nombre",
+            placeholder="Buscar por Folio o Nombre...",
+            key="search_pagos_realtime", # Key para el input
+            value=st.session_state.get("search_value_pagos", ""), # Valor guardado
+            label_visibility="collapsed" # Ocultamos la etiqueta
+        )
 
-    search_term = st.text_input("🔍 Buscar por Folio o Nombre", key="search_pagos")
-    if search_term:
-        df_pagos = df_pagos[
-            df_pagos['folio'].str.contains(search_term, case=False) |
-            df_pagos['nombre_completo'].str.contains(search_term, case=False)
-        ]
+    # El filtro se basa en el valor guardado en session_state
+    search_term = st.session_state.get("search_value_pagos", "")
 
-    col_widths = [1.5, 2, 3.5, 2, 2, 1.5, 3, 2]
-    headers = ["Recibo", "Folio", "Nombre", "Método de Pago", "Fecha", "Monto", "Concepto", "Status"]
-    header_cols = st.columns(col_widths)
-    for i, header in enumerate(headers):
-        header_cols[i].markdown(f"**{header}**")
-    st.markdown("<hr style='margin-top:0; margin-bottom:0'>", unsafe_allow_html=True)
-
-    for i, row in df_pagos.iterrows():
-        cols = st.columns(col_widths)
-        if cols[0].button("📄 Generar", key=f"pdf_{row['folio']}", use_container_width=True):
-            pdf_bytes = generar_recibo_pdf(
-                row['folio'], row['fecha_pago'], row['nombre_completo'],
-                row['concepto'], row['monto'], row['metodo_pago']
-            )
-            st.session_state.pdf_a_descargar = {"data": pdf_bytes, "file_name": f"recibo_{row['folio']}.pdf"}
+    with col_search_button:
+        if st.button("🔍", key="search_pagos_button", use_container_width=True):
+            # Al hacer clic, se actualiza el valor guardado y se recarga
+            st.session_state["search_value_pagos"] = st.session_state["search_pagos_realtime"]
             st.rerun()
 
-        cols[1].markdown(f"<span style='color: #1c83e1; font-weight: bold;'>{row['folio']}</span>", unsafe_allow_html=True)
-        cols[2].write(row['nombre_completo'])
-        cols[3].write(row['metodo_pago'])
-        cols[4].write(row['fecha_pago'].strftime('%d/%m/%Y'))
-        cols[5].write(f"${float(row['monto']):,.2f}")
-        cols[6].write(row['concepto'])
-        cols[7].write(row['status_pago'])
+    # (Si el valor del input cambia y se presiona Enter, también se filtra)
+    if search_term_input != search_term:
+        st.session_state.search_value_pagos = search_term_input
+        search_term = search_term_input
+        # No es necesario st.rerun() aquí, Streamlit lo maneja al presionar Enter
 
-except Exception as e:
-    st.error(f"Ocurrió un error al cargar el historial de pagos: {e}")
+    # Divisor
+
+    try:
+        conn = get_connection()
+        query_pagos = """
+            SELECT p.folio, a.nombre_completo, p.metodo_pago, p.fecha_pago, 
+                   p.monto, p.concepto, p.status_pago
+            FROM Pagos p
+            JOIN Inscripciones i ON p.inscripcion_id = i.inscripcion_id
+            JOIN Alumnos a ON i.alumno_id = a.alumno_id
+            ORDER BY p.folio DESC;
+        """
+        df_pagos = pd.read_sql(query_pagos, conn)
+        df_pagos["folio"] = df_pagos["folio"].astype(str)
+
+        # Aplicar el filtro si 'search_term' (el confirmado) existe
+        if search_term and search_term.strip():
+            search_term_clean = search_term.strip()
+            df_pagos = df_pagos[
+                df_pagos['folio'].str.contains(search_term_clean, case=False) |
+                df_pagos['nombre_completo'].str.contains(search_term_clean, case=False)
+            ]
+        
+        # --- NUEVA ESTRUCTURA DE TABLA (SOLUCIÓN 3) ---
+        
+        # 3. Envolvemos la tabla en el div que tu CSS espera
+        st.markdown('<div class="table-container">', unsafe_allow_html=True)
+
+        col_widths = [1.5, 2, 3.5, 2, 2, 1.5, 3, 2]
+        headers = ["Recibo", "Folio", "Nombre", "Método de Pago", "Fecha", "Monto", "Concepto", "Status"]
+
+        # 4. Creamos la CABECERA con st.container(border=True)
+        with st.container(border=True):
+            cols_header = st.columns(col_widths)
+            for col, header in zip(cols_header, headers):
+                col.markdown(f"**{header}**")
+
+        # 5. Creamos las FILAS con st.container(border=True)
+        if df_pagos.empty:
+            st.info("No se encontraron pagos con ese filtro.")
+        else:
+            for _, row in df_pagos.iterrows():
+                with st.container(border=True):
+                    cols_row = st.columns(col_widths)
+                    
+                    # Botón Generar (SOLUCIÓN 4: con estilo 'btn-warning')
+                    with cols_row[0]:
+                        st.markdown('<div class="btn-warning">', unsafe_allow_html=True)
+                        if st.button("📄 Generar", key=f"pdf_{row['folio']}", use_container_width=True):
+                            pdf_bytes = generar_recibo_pdf(
+                                row['folio'], row['fecha_pago'], row['nombre_completo'],
+                                row['concepto'], row['monto'], row['metodo_pago']
+                            )
+                            st.session_state.pdf_a_descargar = {"data": pdf_bytes, "file_name": f"recibo_{row['folio']}.pdf"}
+                            st.rerun()
+                        st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    # Folio
+                    cols_row[1].markdown(f"<span style='color: #1c83e1; font-weight: bold;'>{row['folio']}</span>", unsafe_allow_html=True)
+                    
+                    # Resto de los datos
+                    cols_row[2].write(row['nombre_completo'])
+                    cols_row[3].write(row['metodo_pago'])
+                    cols_row[4].write(row['fecha_pago'].strftime('%d/%m/%Y'))
+                    cols_row[5].write(f"${float(row['monto']):,.2f}")
+                    cols_row[6].write(row['concepto'])
+                    cols_row[7].write(row['status_pago'])
+
+        # 6. Cerramos el div del contenedor
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    except Exception as e:
+        st.error(f"Ocurrió un error al cargar el historial de pagos: {e}")
+
+# (El 'except' de arriba cierra el 'try' de la tabla)
+# (Este 'with' cierra el st.container(border=True) principal)
