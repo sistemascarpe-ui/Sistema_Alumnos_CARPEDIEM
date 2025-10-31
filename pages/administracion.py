@@ -196,13 +196,19 @@ with tab_alumnos:
             status_filter = st.selectbox("Filtrar por Status", options=status_options, index=0)
 
         with col_filter3:
-            search_term = st.text_input( 
-            "Buscar Alumno", 
-            placeholder="🔍 Buscar por nombre, matrícula o correo...",
-            key="search_alumnos_realtime",
-            value=st.session_state.get("search_value_alumnos", "")
-        )
-        st.session_state["search_value_alumnos"] = search_term
+            col_search_button, col_search_input = st.columns([0.1, 0.9])
+            with col_search_button:
+                st.write("<br>", unsafe_allow_html=True) # Alineación vertical
+                if st.button("🔍", key="search_alumnos_button"):
+                    st.session_state["search_value_alumnos"] = st.session_state["search_alumnos_realtime"]
+            with col_search_input:
+                search_term = st.text_input(
+                    "Buscar Alumno", 
+                    placeholder="Buscar por nombre, matrícula o correo...",
+                    key="search_alumnos_realtime",
+                    value=st.session_state.get("search_value_alumnos", "")
+                )
+        # st.session_state["search_value_alumnos"] = search_term # Esta línea ya no es necesaria aquí
         
 
 
@@ -379,13 +385,19 @@ with tab_grupos:
             query_grupos = "SELECT g.*, p.nombre_completo as nombre_profesor FROM Grupos g LEFT JOIN Profesores p ON g.profesor_id = p.profesor_id ORDER BY g.status_grupo ASC, g.nombre_grupo ASC"
             df_grupos = pd.read_sql(query_grupos, conn)
             
-            search_term_grupos = st.text_input(
-                "🔍 Buscar Grupo por nombre", 
-                key="search_grupos_realtime",
-                placeholder="Escribe para filtrar grupos...",
-                value=st.session_state.get("search_value_grupos", "")
-            )
-            st.session_state["search_value_grupos"] = search_term_grupos
+            col_search_button_grupos, col_search_input_grupos = st.columns([0.05, 0.95])
+            with col_search_button_grupos:
+                st.write("<br>", unsafe_allow_html=True) # Alineación vertical
+                if st.button("🔍", key="search_grupos_button"):
+                    st.session_state["search_value_grupos"] = st.session_state["search_grupos_realtime"]
+            with col_search_input_grupos:
+                search_term_grupos = st.text_input(
+                    "Buscar Grupo por nombre", 
+                    key="search_grupos_realtime",
+                    placeholder="Escribe para filtrar grupos...",
+                    value=st.session_state.get("search_value_grupos", "")
+                )
+            # st.session_state["search_value_grupos"] = search_term_grupos # Esta línea ya no es necesaria aquí
 
             if search_term_grupos and search_term_grupos.strip():
                 df_grupos = df_grupos[df_grupos['nombre_grupo'].str.contains(search_term_grupos.strip(), case=False, na=False)]
@@ -468,13 +480,19 @@ with tab_profesores:
         try:
             df_profesores = pd.read_sql("SELECT * FROM Profesores ORDER BY profesor_id ASC", conn)
             
-            search_profesores = st.text_input(
-            "🔍 Buscar Profesor", 
-            key="search_profesores_realtime",
-            placeholder="Escribe para filtrar profesores...",
-            value=st.session_state.get("search_value_profesores", "")
-            )
-            st.session_state["search_value_profesores"] = search_profesores
+            col_search_button_profesores, col_search_input_profesores = st.columns([0.05, 0.95])
+            with col_search_button_profesores:
+                st.write("<br>", unsafe_allow_html=True) # Alineación vertical
+                if st.button("🔍", key="search_profesores_button"):
+                    st.session_state["search_value_profesores"] = st.session_state["search_profesores_realtime"]
+            with col_search_input_profesores:
+                search_profesores = st.text_input(
+                "Buscar Profesor", 
+                key="search_profesores_realtime",
+                placeholder="Escribe para filtrar profesores...",
+                value=st.session_state.get("search_value_profesores", "")
+                )
+            # st.session_state["search_value_profesores"] = search_profesores # Esta línea ya no es necesaria aquí
             
             
             if search_profesores and search_profesores.strip():
