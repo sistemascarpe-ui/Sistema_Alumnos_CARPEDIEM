@@ -37,7 +37,9 @@ def load_css():
     border-bottom: 2px solid #0d47a1 !important; /* Línea base azul marino */
     margin-bottom: 0 !important; /* Eliminado el margen inferior */
     justify-content: center !important; /* ¡¡CENTRADO!! */
+    width: 100% !important;
 }
+
     
     /* Cada pestaña (botón) */
     button[data-baseweb="tab"] {
@@ -60,6 +62,20 @@ def load_css():
     button[data-baseweb="tab"]:last-of-type {
         border-right: none !important;
     }
+
+div[data-baseweb="tab-highlight"] {
+    display: none !important; /* Oculta el resaltado predeterminado de Streamlit */
+}
+
+button[data-baseweb="tab"][aria-selected="true"]::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: #FF8400; /* Color de la línea de resaltado */
+}
     
     /* Pestaña SELECCIONADA */
     button[data-baseweb="tab"][aria-selected="true"] {
@@ -194,6 +210,20 @@ def load_css():
     }
     button[kind="primary"]:hover, button[kind="primaryFormSubmit"]:hover {
         background-color: #00067A !important; /* Azul más oscuro al hover */
+    }
+
+    /* ================================================================== */
+    /* === 5. RESPONSIVIDAD GENERAL === */
+    /* ================================================================== */
+    /* Asegura que las tablas sean responsive y permitan scroll horizontal */
+    div[data-testid="stDataFrame"], div[data-testid="stTable"] {
+        overflow-x: auto !important;
+    }
+
+    /* Asegura que las imágenes no desborden su contenedor */
+    img {
+        max-width: 100% !important;
+        height: auto !important;
     }
     </style>
     """, unsafe_allow_html=True)
