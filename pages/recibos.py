@@ -383,7 +383,7 @@ with st.container(border=True):
         # 3. Envolvemos la tabla en el div que tu CSS espera
         st.markdown('<div class="table-container">', unsafe_allow_html=True)
 
-        col_widths = [1.5, 2, 3.5, 2, 2, 1.5, 3, 2]
+        col_widths = [2, 2, 3.5, 2, 2, 1.5, 3, 2]
         headers = ["Recibo", "Folio", "Nombre", "Método de Pago", "Fecha", "Monto", "Concepto", "Status"]
 
         # 4. Creamos la CABECERA con st.container(border=True)

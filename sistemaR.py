@@ -6,9 +6,6 @@ import bcrypt
 
 from utils.css import load_css
 
-
-
-
 # --- LÓGICA DE CONEXIÓN ROBUSTA ---
 @st.cache_resource
 def init_connection():
@@ -19,9 +16,12 @@ def get_connection():
     try:
         conn.cursor().execute("SELECT 1")
     except (psycopg2.InterfaceError, psycopg2.OperationalError, psycopg2.errors.InFailedSqlTransaction):
-        # Si hay un error, hacer rollback y limpiar la caché
         if not conn.closed:
-            conn.rollback()
+            try:
+                if conn.status == psycopg2.extensions.STATUS_IN_TRANSACTION:
+                    conn.rollback()
+            except Exception:
+                pass # Ignorar errores en rollback
         st.cache_resource.clear()
         conn = init_connection()
     return conn
@@ -42,16 +42,28 @@ def check_login(username, password):
                 if bcrypt.checkpw(password_bytes, stored_hash):
                     return nombre_completo 
             return None
-    except (psycopg2.InterfaceError, psycopg2.OperationalError, psycopg2.errors.InFailedSqlTransaction) as e:
-        # Error de conexión o transacción fallida
-        if not conn.closed:
-            conn.rollback()
-        st.cache_resource.clear()
-        st.error("Error de conexión a la base de datos. Por favor, intenta de nuevo.")
-        return None
     except Exception as e:
-        st.error(f"Error al verificar: {e}")
+        # st.error(f"Error al verificar: {e}") # Descomentar para depurar
+        st.error("Error de conexión al intentar verificar. Intente de nuevo.")
+        st.cache_resource.clear() # Forzar reconexión
         return None
+
+# --- (NUEVO) MODAL PARA MOSTRAR CUMPLEAÑEROS ---
+@st.dialog("🎂 ¡Feliz Cumpleaños!")
+def modal_cumpleaneros(df_cumpleaneros):
+    st.markdown(f"#### ¡Felicidades a los siguientes alumnos por su cumpleaños!")
+    st.write("") # Espacio
+    
+    for index, row in df_cumpleaneros.iterrows():
+        # Calculamos la edad
+        today = datetime.date.today()
+        edad = today.year - row['fecha_nacimiento'].year - ((today.month, today.day) < (row['fecha_nacimiento'].month, row['fecha_nacimiento'].day))
+        
+        st.markdown(f"**🧑‍🎓 {row['nombre_completo']}** (cumple {edad} años)")
+    
+    st.write("") # Espacio
+    if st.button("Cerrar", use_container_width=True, type="primary"):
+        st.rerun()
 
 # --- LÓGICA PRINCIPAL DE LA APP (EL "PORTERO") ---
 
@@ -71,15 +83,12 @@ if st.session_state.logged_in:
     time_since_activity = (now - st.session_state.last_activity).total_seconds() / 60  # en minutos
     
     if time_since_activity > st.session_state.session_timeout_minutes:
-        # Session expired - redirigir al login
         st.session_state.logged_in = False
         st.session_state.username = None
         st.session_state.nombre_completo = None
         st.session_state.show_timeout_message = True
-        # Forzar redirección al login
         st.rerun()
     else:
-        # Actualizar última actividad
         st.session_state.last_activity = now
 
 # --- 2. SI NO HA HECHO LOGIN (Mostrar solo el formulario) ---
@@ -104,15 +113,11 @@ if not st.session_state.logged_in:
         </style>
         """, unsafe_allow_html=True)
     
-    
-
-    
     st.title("Sistema de Gestión 🔑")
     
     # Mostrar mensaje de timeout si existe
     if hasattr(st.session_state, 'show_timeout_message') and st.session_state.show_timeout_message:
         st.error("🕒 Tu sesión ha expirado por inactividad. Por favor, inicia sesión nuevamente.")
-        # Limpiar el mensaje después de mostrarlo
         del st.session_state.show_timeout_message
     
     st.subheader("Por favor, inicia sesión para continuar")
@@ -130,7 +135,7 @@ if not st.session_state.logged_in:
                 st.session_state.logged_in = True
                 st.session_state.username = username
                 st.session_state.nombre_completo = nombre_usuario
-                st.session_state.last_activity = datetime.datetime.now()  # Actualizar actividad
+                st.session_state.last_activity = datetime.datetime.now()
                 st.rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
@@ -138,25 +143,22 @@ if not st.session_state.logged_in:
 
 # --- 3. SI SÍ HIZO LOGIN (Mostrar la app completa) ---
 else:
-    # Configuración de la página principal (la barra se muestra por defecto)
+    # Configuración de la página principal
     st.set_page_config(
         page_title="Dashboard Principal",
         layout="wide"
     )
-    load_css()
+    load_css() # Carga el CSS completo
 
-    # --- CAMBIO CLAVE (Soluciona Problema 1) ---
-    # Construimos nuestro propio menú "bonito"
+    # --- Menú lateral (Sidebar) ---
     with st.sidebar:
         st.title(f"Bienvenido, {st.session_state.nombre_completo} 👋")
         st.markdown("---")
         
-        # --- Este es tu nuevo menú ---
         st.page_link("sistemaR.py", label="Dashboard Principal", icon="📊")
         st.page_link("pages/administracion.py", label="Administración", icon="👥")
         st.page_link("pages/recibos.py", label="Recibos de Pago", icon="🧾")
         st.page_link("pages/Historial.py", label="Historial de Grupos", icon="📚")
-        # --- Fin del menú ---
         
         st.markdown("---")
         
@@ -166,20 +168,30 @@ else:
             st.session_state.nombre_completo = None
             st.rerun()
             
-    # --- CONTENIDO DEL DASHBOARD (Tu código de métricas) ---
+    # --- CONTENIDO DEL DASHBOARD (MÉTRICAS MEJORADAS) ---
     st.title("Dashboard Principal 🎓")
     st.markdown("---")
     st.subheader("Resumen General del Sistema")
 
     try:
-        col1, col2, col3, col4 = st.columns(4)
         conn = get_connection()
+        
+        # --- (NUEVO) Consulta de Cumpleaños (más eficiente) ---
+        query_cumpleaneros = """
+            SELECT nombre_completo, fecha_nacimiento 
+            FROM Alumnos 
+            WHERE status_alumno = 'Activo' 
+            AND EXTRACT(MONTH FROM fecha_nacimiento) = EXTRACT(MONTH FROM CURRENT_DATE) 
+            AND EXTRACT(DAY FROM fecha_nacimiento) = EXTRACT(DAY FROM CURRENT_DATE);
+        """
+        df_cumpleaneros = pd.read_sql(query_cumpleaneros, conn)
+        total_cumpleaneros = len(df_cumpleaneros)
 
-        # ... (Tu código de métricas va aquí, no necesita cambios) ...
+        # --- (MEJORADO) Métrica de Alumnos ---
         query_alumnos = "SELECT COUNT(*) FROM Alumnos WHERE status_alumno = 'Activo'"
         total_alumnos = pd.read_sql(query_alumnos, conn).iloc[0,0]
-        col1.metric(label="Alumnos Activos 🧑‍🎓", value=total_alumnos)
-
+        
+        # --- (MEJORADO) Métrica de Ingresos ---
         query_ingresos = """
             SELECT SUM(monto) FROM Pagos 
             WHERE EXTRACT(MONTH FROM fecha_pago) = EXTRACT(MONTH FROM NOW()) 
@@ -187,16 +199,48 @@ else:
         """
         ingresos = pd.read_sql(query_ingresos, conn).iloc[0,0]
         ingresos = ingresos if ingresos is not None else 0
-        col2.metric(label="Ingresos del Mes 💵", value=f"${float(ingresos):,.2f}")
-
+        
+        # --- (MEJORADO) Métrica de Grupos ---
         query_grupos = "SELECT COUNT(*) FROM Grupos WHERE status_grupo = 'Activo'"
         total_grupos = pd.read_sql(query_grupos, conn).iloc[0,0]
-        col3.metric(label="Grupos Activos 📚", value=total_grupos)
 
-        query_pendientes = "SELECT SUM(monto) FROM Pagos WHERE status_pago = 'Pendiente'"
-        pendientes = pd.read_sql(query_pendientes, conn).iloc[0,0]
-        pendientes = pendientes if pendientes is not None else 0
-        col4.metric(label="Monto Pendiente ⏳", value=f"${float(pendientes):,.2f}")
+        # --- (NUEVO) Diseño de Métricas con Tarjetas ---
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            with st.container(border=True):
+                st.markdown("##### 🧑‍🎓 Alumnos Activos")
+                st.markdown(f"<h1 style='text-align: center; color: #0d47a1;'>{total_alumnos}</h1>", unsafe_allow_html=True)
+                # (NUEVO) Placeholder para alinear con el botón
+                st.write('<div style="height: 38px;"></div>', unsafe_allow_html=True)
+
+        with col2:
+            with st.container(border=True):
+                st.markdown("##### 💵 Ingresos del Mes")
+                st.markdown(f"<h1 style='text-align: center; color: #28a745;'>${float(ingresos):,.2f}</h1>", unsafe_allow_html=True)
+                # (NUEVO) Placeholder para alinear con el botón
+                st.write('<div style="height: 38px;"></div>', unsafe_allow_html=True)
+
+        with col3:
+            with st.container(border=True):
+                st.markdown("##### 📚 Grupos Activos")
+                st.markdown(f"<h1 style='text-align: center; color: #0d47a1;'>{total_grupos}</h1>", unsafe_allow_html=True)
+                # (NUEVO) Placeholder para alinear con el botón
+                st.write('<div style="height: 38px;"></div>', unsafe_allow_html=True)
+        
+        with col4:
+            # --- (NUEVO) Tarjeta de Cumpleaños ---
+            with st.container(border=True):
+                st.markdown("##### 🎂 Cumpleañeros de Hoy")
+                st.markdown(f"<h1 style='text-align: center; color: #FF8400;'>{total_cumpleaneros}</h1>", unsafe_allow_html=True)
+                
+                # Si hay cumpleañeros, muestra el botón
+                if total_cumpleaneros > 0:
+                    if st.button("Ver Lista 🥳", key="ver_cumples", use_container_width=True, type="primary"):
+                        modal_cumpleaneros(df_cumpleaneros)
+                else:
+                    # (NUEVO) Placeholder para alinear con el botón
+                    st.write('<div style="height: 58px;"></div>', unsafe_allow_html=True)
 
     except Exception as e:
         st.error(f"🔴 No se pudo cargar el resumen del dashboard. Error: {e}")

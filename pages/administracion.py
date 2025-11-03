@@ -535,8 +535,30 @@ def modal_editar_alumno(alumno_data, conn):
     opciones_grupo.update(pd.Series(df_grupos_options.nombre_grupo.values, index=df_grupos_options.grupo_id.astype(int)).to_dict())
     current_grupo_id = 0
     try:
-        current_grupo_id = pd.read_sql(f"SELECT grupo_id FROM Inscripciones WHERE alumno_id = {int(alumno_data['alumno_id'])}", conn).iloc[0]['grupo_id']
-    except IndexError: pass
+        # Consulta mejorada para obtener el grupo más reciente del alumno
+        query = f"""
+        SELECT i.grupo_id 
+        FROM Inscripciones i 
+        WHERE i.alumno_id = {int(alumno_data['alumno_id'])}
+        ORDER BY i.inscripcion_id DESC 
+        LIMIT 1
+        """
+        result = pd.read_sql(query, conn)
+        if not result.empty:
+            current_grupo_id = int(result.iloc[0]['grupo_id'])
+            # Verificar si el grupo existe en las opciones
+            if current_grupo_id not in opciones_grupo:
+                # Obtener el nombre del grupo aunque no esté activo
+                grupo_query = f"SELECT nombre_grupo FROM Grupos WHERE grupo_id = {current_grupo_id}"
+                grupo_result = pd.read_sql(grupo_query, conn)
+                if not grupo_result.empty:
+                    # Añadir el grupo a las opciones aunque no esté activo
+                    opciones_grupo[current_grupo_id] = f"{grupo_result.iloc[0]['nombre_grupo']} (Inactivo)"
+                    # Actualizar la lista de opciones
+                    lista_ids_opciones = list(opciones_grupo.keys())
+    except Exception as e:
+        st.error(f"Error al obtener grupo: {e}")
+        pass
     lista_ids_opciones = list(opciones_grupo.keys())
     current_index = lista_ids_opciones.index(current_grupo_id) if current_grupo_id in lista_ids_opciones else 0
 
@@ -555,7 +577,7 @@ def modal_editar_alumno(alumno_data, conn):
             if alumno_data['status_alumno'] not in status_list: status_list.append(alumno_data['status_alumno'])
             current_status_index = status_list.index(alumno_data['status_alumno'])
             status = st.selectbox("Status", status_list, index=current_status_index)
-            fecha_nacimiento = st.date_input("Fecha de Nacimiento", value=pd.to_datetime(alumno_data["fecha_nacimiento"]))
+            fecha_nacimiento = st.date_input("Fecha de Nacimiento", value=pd.to_datetime(alumno_data["fecha_nacimiento"]), min_value=datetime.date(1950, 1, 1), max_value=datetime.date(2025, 12, 31))
 
         c1, c2 = st.columns(2)
         
