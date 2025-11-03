@@ -125,12 +125,93 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
         width: 100% !important;
         max-width: 100% !important;
     }
+    /* Media queries para responsividad */
+    @media (max-width: 1200px) {
+        .stApp {
+            padding: 1rem !important;
+        }
+        .main-header {
+            padding: 2rem !important;
+        }
+        .main-header h1 { 
+            font-size: 2.2rem; 
+        }
+    }
+    
+    @media (max-width: 992px) {
+        .main-header h1 { 
+            font-size: 2rem; 
+        }
+        .main-header p { 
+            font-size: 1.1rem; 
+        }
+    }
+    
     @media (max-width: 768px) {
         .stApp {
             padding: 0.5rem !important;
         }
         .floating-card {
             padding: 1rem !important;
+        }
+        .main-header {
+            padding: 1.5rem !important;
+        }
+        .main-header h1 { 
+            font-size: 1.8rem; 
+        }
+        .main-header p { 
+            font-size: 1rem; 
+        }
+        /* Mejora para tablas en móviles */
+        [data-testid="stTable"], [data-testid="stDataFrame"] {
+            font-size: 0.9rem !important;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .stApp {
+            padding: 0.3rem !important;
+        }
+        .main-header {
+            padding: 1rem !important;
+            margin-bottom: 1rem !important;
+        }
+        .main-header h1 { 
+            font-size: 1.5rem; 
+        }
+        .main-header p { 
+            font-size: 0.9rem; 
+            margin-top: 0.3rem;
+        }
+        /* Ajustes para formularios en móviles */
+        [data-testid="stForm"] {
+            padding: 0.8rem !important;
+        }
+        /* Optimizaciones para dispositivos móviles */
+        /* Ajustes para el sidebar en móviles */
+        [data-testid="stSidebar"] {
+            width: 100% !important;
+            min-width: 100% !important;
+            max-width: 100% !important;
+            margin-bottom: 1rem !important;
+            border-radius: 12px !important;
+        }
+        
+        /* Ajustes para botones en móviles */
+        button {
+            width: 100% !important;
+            margin-bottom: 0.5rem !important;
+        }
+        
+        /* Ajustes para inputs en móviles */
+        input, select, textarea {
+            font-size: 16px !important; /* Evita zoom en iOS */
+        }
+        
+        /* Ajustes para los encabezados */
+        h1, h2, h3 {
+            text-align: center !important;
         }
     }
 
@@ -146,6 +227,9 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
         padding: 1.5rem !important;
         background-color: white;
         margin-bottom: 1.5rem;
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: auto !important;
     }
     [data-testid="stExpander"] > summary {
         font-weight: 600;
@@ -223,9 +307,28 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
     /* ================================================================== */
     /* === 5. RESPONSIVIDAD GENERAL Y ALINEACIÓN DE TABLAS === */
     /* ================================================================== */
-    /* Asegura que las tablas sean responsive y permitan scroll horizontal */
-    div[data-testid="stDataFrame"], div[data-testid="stTable"] {
+    /* Mejoras de responsividad para tablas */
+    [data-testid="stTable"], [data-testid="stDataFrame"] {
+        width: 100% !important;
         overflow-x: auto !important;
+        display: block !important;
+    }
+    
+    /* Asegurar que las tablas se ajusten al contenedor */
+    .stTable, .stDataFrame {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    /* Ajustar el tamaño de texto en tablas para dispositivos pequeños */
+    @media (max-width: 768px) {
+        .stTable table, .stDataFrame table {
+            font-size: 0.9rem !important;
+        }
+        .stTable th, .stDataFrame th,
+        .stTable td, .stDataFrame td {
+            padding: 0.4rem !important;
+        }
     }
     
     /* Alineación vertical de contenido en tablas */
