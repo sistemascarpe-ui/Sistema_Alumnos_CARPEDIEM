@@ -275,7 +275,7 @@ with tab_alumnos:
                 st.markdown('<div class="table-container">', unsafe_allow_html=True)
                 display_data_table(
                     df=df_grupo_actual,
-                    col_widths=[3, 4, 1.5, 4, 4, 3, 4, 3, 3],
+                    col_widths=[3, 4, 2, 4, 4, 3, 4, 3, 3],
                     headers=["Acciones", "Nombre", "Grupo", "Status", "Certificado", "Matrícula", "Correo", "Teléfono", "Fecha Nacimiento"],
                     custom_renderers=renderers
                 )
@@ -437,7 +437,7 @@ with tab_grupos:
             st.markdown('<div class="table-container">', unsafe_allow_html=True)
             display_data_table(
                 df=df_grupos,
-                col_widths=[3, 1.5, 1.5, 2, 2, 3],
+                col_widths=[2.5, 1.5, 1.5, 2, 2, 3],
                 headers=["Acciones", "Grupo", "Status", "Fecha Inicio", "Fecha Término", "Profesor"],
                 custom_renderers=grupo_renderers
             )

@@ -72,7 +72,12 @@ with st.sidebar:
 # --- FIN DEL BLOQUE "PORTERO" ---
 
 st.set_page_config(page_title="Historial de Grupos", layout="wide")
-st.title("🗂️ Historial de Grupos Finalizados")
+st.markdown("""
+<div class="main-header">
+    <h1>🗂️ Historial de Grupos Finalizados</h1>
+    <p>Consulta el historial de grupos que han finalizado</p>
+</div>
+""", unsafe_allow_html=True)
 load_css()
 # --- LÓGICA DE CONEXIÓN ROBUSTA ---
 @st.cache_resource

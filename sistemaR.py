@@ -169,7 +169,12 @@ else:
             st.rerun()
             
     # --- CONTENIDO DEL DASHBOARD (MÉTRICAS MEJORADAS) ---
-    st.title("Dashboard Principal 🎓")
+    st.markdown("""
+    <div class="main-header">
+        <h1>Dashboard Principal 🎓</h1>
+        <p>Vista general del sistema de gestión</p>
+    </div>
+    """, unsafe_allow_html=True)
     st.markdown("---")
     st.subheader("Resumen General del Sistema")
 

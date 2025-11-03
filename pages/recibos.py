@@ -84,7 +84,12 @@ with st.sidebar:
 # --- INICIO DE LA PÁGINA DE RECIBOS ---
 
 # (st.set_page_config ya no va aquí, se maneja arriba o en la app principal)
-st.title("Registro de Pagos y Recibos 🧾")
+st.markdown("""
+<div class="main-header">
+    <h1>Registro de Pagos y Recibos 🧾</h1>
+    <p>Gestiona los pagos y recibos del sistema</p>
+</div>
+""", unsafe_allow_html=True)
 # (load_css() ya se llamó al inicio)
 
 # --- LÓGICA DE CONEXIÓN ROBUSTA ---

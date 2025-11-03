@@ -90,15 +90,17 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
     /* --- (Resto de Sección 2) --- */
     .main-header {
         background-color: #0d47a1 !important;
-        padding: 1.5rem !important;
+        padding: 2.5rem !important;
         border-radius: 12px !important;
         color: white !important;
         text-align: center !important;
         box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
         margin-bottom: 2rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
     }
-    .main-header h1 { font-size: 2rem; font-weight: bold; margin: 0; }
-    .main-header p { font-size: 1rem; font-weight: 300; opacity: 0.9; margin-top: 0.25rem; }
+    .main-header h1 { font-size: 2.5rem; font-weight: bold; margin: 0; }
+    .main-header p { font-size: 1.2rem; font-weight: 300; opacity: 0.9; margin-top: 0.5rem; }
 
     [data-testid="stSidebar"] {
         background-color: #0d47a1 !important;
@@ -219,11 +221,39 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
     }
 
     /* ================================================================== */
-    /* === 5. RESPONSIVIDAD GENERAL === */
+    /* === 5. RESPONSIVIDAD GENERAL Y ALINEACIÓN DE TABLAS === */
     /* ================================================================== */
     /* Asegura que las tablas sean responsive y permitan scroll horizontal */
     div[data-testid="stDataFrame"], div[data-testid="stTable"] {
         overflow-x: auto !important;
+    }
+    
+    /* Alineación vertical de contenido en tablas */
+    div[data-testid="stTable"] table {
+        width: 100% !important;
+    }
+    
+    div[data-testid="stTable"] th, div[data-testid="stTable"] td {
+        vertical-align: middle !important;
+        padding: 8px 12px !important;
+        text-align: center !important;
+    }
+    
+    /* Estilo para los botones de acción en tablas */
+    div[data-testid="stTable"] button {
+        margin: 0 auto !important;
+        display: block !important;
+    }
+    
+    /* Centrar contenido de los encabezados de tabla */
+    .stMarkdownContainer {
+        text-align: center !important;
+    }
+    
+    .stVerticalBlock div[data-testid="stMarkdownContainer"] {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
     }
 
     /* Asegura que las imágenes no desborden su contenedor */
