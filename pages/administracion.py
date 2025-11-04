@@ -163,7 +163,20 @@ def cargar_datos_alumnos(grupo_id_seleccionado, status_filter):
     conn = get_connection()
     
     # (CORRECCIÓN 2: Eliminado 'a.estado_residencia' duplicado)
-    query_alumnos = "SELECT a.*, g.nombre_grupo FROM Alumnos a LEFT JOIN Inscripciones i ON a.alumno_id = i.alumno_id LEFT JOIN Grupos g ON i.grupo_id = g.grupo_id"
+    # (CORRECCIÓN 4: MEJORADA LA CONSULTA PARA EVITAR ALUMNOS DUPLICADOS)
+    query_alumnos = """
+        SELECT a.*, g.nombre_grupo
+        FROM Alumnos a
+        LEFT JOIN (
+            -- Subconsulta para obtener solo la inscripción MÁS RECIENTE por alumno
+            SELECT 
+                i.alumno_id, 
+                i.grupo_id,
+                ROW_NUMBER() OVER(PARTITION BY i.alumno_id ORDER BY i.inscripcion_id DESC) as rn
+            FROM Inscripciones i
+        ) i ON a.alumno_id = i.alumno_id AND i.rn = 1 -- Unir solo con la fila #1 (más reciente)
+        LEFT JOIN Grupos g ON i.grupo_id = g.grupo_id
+    """
     params = []
     where_clauses = []
 
@@ -348,8 +361,28 @@ with tab_alumnos:
                         "Acciones": render_acciones_alumno, # <-- Botón Amarillo
                         "Nombre": lambda row, idx: st.write(row['nombre_completo']),
                         "Grupo": lambda row, idx: st.write(row['nombre_grupo']),
-                        "Status": lambda row, idx: st.selectbox("Status", ["Activo", "Baja", "Restringido", "Finalizado"], index=["Activo", "Baja", "Restringido", "Finalizado"].index(row['status_alumno']), key=f"status_{row['alumno_id']}_{idx}", on_change=handle_status_change, args=(row['alumno_id'],), label_visibility="collapsed"),
-                        "Certificado": lambda row, idx: st.selectbox("Certificado", ["Pendiente", "Certificado"], index=["Pendiente", "Certificado"].index(row['certificado']), key=f"certificado_{row['alumno_id']}_{idx}", on_change=handle_certificado_change, args=(row['alumno_id'],), label_visibility="collapsed"),
+                        
+                        # ----- INICIO DE LA CORRECCIÓN DE KEYERROR -----
+                        "Status": lambda row, idx: st.selectbox(
+                            "Status", 
+                            ["Activo", "Baja", "Restringido", "Finalizado"], 
+                            index=["Activo", "Baja", "Restringido", "Finalizado"].index(row['status_alumno']), 
+                            key=f"status_{row['alumno_id']}",  # CORREGIDO: Se quitó _{idx}
+                            on_change=handle_status_change, 
+                            args=(row['alumno_id'],), 
+                            label_visibility="collapsed"
+                        ),
+                        "Certificado": lambda row, idx: st.selectbox(
+                            "Certificado", 
+                            ["Pendiente", "Certificado"], 
+                            index=["Pendiente", "Certificado"].index(row['certificado']), 
+                            key=f"certificado_{row['alumno_id']}", # CORREGIDO: Se quitó _{idx}
+                            on_change=handle_certificado_change, 
+                            args=(row['alumno_id'],), 
+                            label_visibility="collapsed"
+                        ),
+                        # ----- FIN DE LA CORRECCIÓN DE KEYERROR -----
+
                         "Matrícula": lambda row, idx: st.write(row['matricula']),
                         "Correo": lambda row, idx: st.write(row['correo']),
                         "Teléfono": lambda row, idx: st.write(row['telefono']),
@@ -949,7 +982,7 @@ if "modal_tipo" in st.session_state and st.session_state.modal_tipo is not None:
         elif tipo == "finalize_grupo":
             modal_finalizar_grupo(obj_id, conn)
         elif tipo == "reset_grupo":
-            modal_restablecer_grupo(obj_id, conn)
+            modal_restablecer_grupo(objid, conn)
         elif tipo == "edit_profesor":
             profesor_data = get_profesor_data(obj_id, conn) # Ahora solo se llama
             modal_editar_profesor(profesor_data, conn)
@@ -1053,4 +1086,5 @@ scroll_to_top_html = """
 
 # Renderizar el componente en la página
 st.markdown(scroll_to_top_html, unsafe_allow_html=True)
+
 
