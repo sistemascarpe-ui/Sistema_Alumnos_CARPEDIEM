@@ -235,7 +235,7 @@ with st.expander("Registrar Nuevo Pago y Generar Recibo", expanded=False):
     st.write("")
     # Carga de alumnos según el filtro
     if grupo_filtrado_id == 0:
-        df_alumnos_filtrados = pd.read_sql("SELECT a.alumno_id, a.nombre_completo FROM Alumnos a LEFT JOIN Inscripciones i ON a.alumno_id = i.alumno_id LEFT JOIN Grupos g ON i.grupo_id = g.grupo_id WHERE a.status_alumno = 'Activo' ORDER BY a.nombre_completo ASC", conn)
+        df_alumnos_filtrados = pd.read_sql("SELECT alumno_id, nombre_completo FROM Alumnos WHERE status_alumno = 'Activo' ORDER BY nombre_completo ASC", conn)
     else:
         query_alumnos_filtrados = "SELECT a.alumno_id, a.nombre_completo FROM Alumnos a JOIN Inscripciones i ON a.alumno_id = i.alumno_id WHERE a.status_alumno = 'Activo' AND i.grupo_id = %s ORDER BY a.nombre_completo ASC;"
         df_alumnos_filtrados = pd.read_sql(query_alumnos_filtrados, conn, params=(grupo_filtrado_id,))

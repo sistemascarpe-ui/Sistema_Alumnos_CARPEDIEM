@@ -3,8 +3,6 @@ import psycopg2
 import pandas as pd
 import datetime
 import json
-
-
 # Asumiendo que tienes utils.css
 from utils.css import load_css
 
@@ -130,6 +128,83 @@ def close_modal_and_rerun():
     st.session_state.modal_id = None
     st.rerun()
 
+# --- FUNCIONES GLOBALES DE CARGA DE DATOS ---
+
+@st.cache_data(ttl=600)
+def get_group_filter_options(_conn):
+    return pd.read_sql("SELECT grupo_id, nombre_grupo FROM Grupos WHERE status_grupo = 'Activo' ORDER BY nombre_grupo ASC", _conn)
+
+@st.cache_data(ttl=600)
+def get_total_groups_count():
+    conn = get_connection()
+    with conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) FROM Grupos WHERE status_grupo = 'Activo'")
+        total_grupos = cur.fetchone()[0]
+    return total_grupos
+
+# (CORRECCIÓN 1: Funciones movidas aquí para ser globales)
+@st.cache_data(ttl=600)
+def get_alumno_data(alumno_id, _connection):
+    return pd.read_sql(f"SELECT * FROM Alumnos WHERE alumno_id = {alumno_id}", _connection).iloc[0]
+
+@st.cache_data(ttl=600)
+def get_grupo_data(grupo_id, _connection):
+    return pd.read_sql(f"SELECT * FROM Grupos WHERE grupo_id = {grupo_id}", _connection).iloc[0]
+
+@st.cache_data(ttl=600)
+def get_profesor_data(profesor_id, _connection):
+    return pd.read_sql(f"SELECT * FROM Profesores WHERE profesor_id = {profesor_id}", _connection).iloc[0]
+# (Fin de la corrección 1)
+
+
+# (CORRECCIÓN FINAL: Añadido decorador de caché)
+@st.cache_data(ttl=600)
+def cargar_datos_alumnos(grupo_id_seleccionado, status_filter):
+    conn = get_connection()
+    
+    # (CORRECCIÓN 2: Eliminado 'a.estado_residencia' duplicado)
+    query_alumnos = "SELECT a.*, g.nombre_grupo FROM Alumnos a LEFT JOIN Inscripciones i ON a.alumno_id = i.alumno_id LEFT JOIN Grupos g ON i.grupo_id = g.grupo_id"
+    params = []
+    where_clauses = []
+
+    if grupo_id_seleccionado != 0:
+        where_clauses.append("g.grupo_id = %s")
+        params.append(grupo_id_seleccionado)
+    
+    if status_filter == "Todos":
+        where_clauses.append("a.status_alumno IN ('Activo', 'Restringido', 'Baja')")
+    elif status_filter == "Activo":
+        where_clauses.append("a.status_alumno = 'Activo'")
+    elif status_filter in ("Restringido", "Baja"):
+        where_clauses.append("a.status_alumno = %s")
+        params.append(status_filter)
+    else:
+        where_clauses.append("a.status_alumno != 'Finalizado'")
+
+    if where_clauses:
+        query_alumnos += " WHERE " + " AND ".join(where_clauses)
+    
+    query_alumnos += " ORDER BY g.nombre_grupo ASC, a.nombre_completo ASC;"
+    df_alumnos_raw = pd.read_sql(query_alumnos, conn, params=tuple(params))
+
+    # Obtener conteo de alumnos por estado
+    query_status_counts = "SELECT a.status_alumno, COUNT(a.alumno_id) FROM Alumnos a LEFT JOIN Inscripciones i ON a.alumno_id = i.alumno_id LEFT JOIN Grupos g ON i.grupo_id = g.grupo_id"
+    status_counts_params = []
+    status_counts_where_clauses = []
+
+    if grupo_id_seleccionado != 0:
+        status_counts_where_clauses.append("g.grupo_id = %s")
+        status_counts_params.append(grupo_id_seleccionado)
+    
+    if status_counts_where_clauses:
+        query_status_counts += " WHERE " + " AND ".join(status_counts_where_clauses)
+    
+    query_status_counts += " GROUP BY a.status_alumno"
+    df_status_counts = pd.read_sql(query_status_counts, conn, params=tuple(status_counts_params))
+    status_counts = dict(zip(df_status_counts['status_alumno'], df_status_counts['count']))
+
+    return df_alumnos_raw, status_counts
+
 # --- TABS PRINCIPALES ---
 tab_alumnos, tab_grupos, tab_profesores = st.tabs([" Alumnos", " Grupos", " Profesores"])
 conn = get_connection()
@@ -157,11 +232,19 @@ with tab_alumnos:
                 telefono = st.text_input("Teléfono")
                 estado = st.text_input("Estado de residencia")
                 if not df_grupos_options.empty:
-                    grupo_seleccionado_id = st.selectbox("Asignar al Grupo", options=df_grupos_options['grupo_id'], format_func=lambda x: df_grupos_options.loc[df_grupos_options['grupo_id'] == x, 'nombre_grupo'].iloc[0], index=None, placeholder="Selecciona un grupo...")
+                    # Crear un diccionario para un mapeo más eficiente
+                    grupo_map = dict(zip(df_grupos_options['grupo_id'], df_grupos_options['nombre_grupo']))
+                    grupo_seleccionado_id = st.selectbox(
+                        "Asignar al Grupo", 
+                        options=list(grupo_map.keys()), 
+                        format_func=lambda x: grupo_map.get(x, "Grupo Desconocido"), # Usar .get para manejo seguro
+                        index=None, 
+                        placeholder="Selecciona un grupo..."
+                    )
                 else:
                     st.warning("No hay grupos 'Activos' disponibles.")
                     grupo_seleccionado_id = None
-            
+
             # Botón Azul Sólido
             submitted = st.form_submit_button("Registrar Alumno", type="primary")
             
@@ -183,80 +266,68 @@ with tab_alumnos:
                         st.error(f"Error al registrar alumno: {e}")
                         conn.rollback()
 
-    
-    # (CORREGIDO): Se usa st.container(border=True) para agrupar filtros Y tabla
+
     with st.container(border=True):
         st.subheader("Lista de Alumnos")
+        with st.container(): # This is the new container for filters
+            col_filter1, col_filter2, col_filter3 = st.columns([1, 1, 2])
+            with col_filter1:
+                total_grupos = get_total_groups_count()
+                st.markdown(f"""<div style='display: flex; justify-content: space-between; align-items: center;'>"""\
+                            f"""<span>📚 Filtrar por Grupo</span>"""\
+                            f"""<span style='font-size: 0.9em; color: #888;'>Total: {total_grupos}</span>"""\
+                            f"""</div>""", unsafe_allow_html=True)
+                df_grupos_filtro = get_group_filter_options(_conn=conn)
+                opciones_filtro = {0: "Mostrar Todos los Grupos"}
+                opciones_filtro.update(pd.Series(df_grupos_filtro.nombre_grupo.values, index=df_grupos_filtro.grupo_id).to_dict())
+                grupo_id_seleccionado = st.selectbox("", options=list(opciones_filtro.keys()), format_func=lambda x: opciones_filtro[x], label_visibility="collapsed")
+                
+            with col_filter2:
+                col_status_label, col_status_count = st.columns([0.5, 0.5])
+                with col_status_label:
+                    st.markdown("<div style='display: flex; align-items: center; height: 100%;'>Filtrar por Status</div>", unsafe_allow_html=True)
+                with col_status_count:
+                    span_placeholder = st.empty() # Placeholder for the span
+                status_options = ["Todos", "Activo", "Restringido", "Baja"]
+                status_filter = st.selectbox("", options=status_options, index=0, label_visibility="collapsed")
 
-        col_filter1, col_filter2, col_filter3 = st.columns([1, 1, 2])
-        with col_filter1:
-            @st.cache_data(ttl=600)
-            def get_group_filter_options(_connection):
-                return pd.read_sql("SELECT grupo_id, nombre_grupo FROM Grupos ORDER BY nombre_grupo ASC", _connection)
-            df_grupos_filtro = get_group_filter_options(conn)
-            opciones_filtro = {0: "Mostrar Todos los Grupos"}
-            opciones_filtro.update(pd.Series(df_grupos_filtro.nombre_grupo.values, index=df_grupos_filtro.grupo_id).to_dict())
-            grupo_id_seleccionado = st.selectbox("Filtrar por Grupo", options=list(opciones_filtro.keys()), format_func=lambda x: opciones_filtro[x])
+            with col_filter3:
+                st.write("") # Add vertical spacing to align with filters
+                col_search_button, col_search_input = st.columns([0.15, 0.85]) # Button first
+                with col_search_button:
+                    if st.button("🔍", key="search_alumnos_button", use_container_width=True):
+                        st.session_state["search_value_alumnos"] = st.session_state["search_alumnos_realtime"]
+                with col_search_input:
+                    search_term = st.text_input(
+                        "Buscar Alumno",
+                        placeholder="Buscar por nombre, matrícula o correo...",
+                        key="search_alumnos_realtime",
+                        value=st.session_state.get("search_value_alumnos", ""),
+                        label_visibility="collapsed" # Ocultar la etiqueta
+                    )
         
-        with col_filter2:
-            status_options = ["Todos", "Activo", "Restringido", "Baja"]
-            status_filter = st.selectbox("Filtrar por Status", options=status_options, index=0)
-
-        with col_filter3:
-            st.write("") # Add vertical spacing to align with filters
-            col_search_button, col_search_input = st.columns([0.15, 0.85]) # Button first
-            with col_search_button:
-                if st.button("🔍", key="search_alumnos_button", use_container_width=True):
-                    st.session_state["search_value_alumnos"] = st.session_state["search_alumnos_realtime"]
-            with col_search_input:
-                search_term = st.text_input(
-                    "Buscar Alumno",
-                    placeholder="Buscar por nombre, matrícula o correo...",
-                    key="search_alumnos_realtime",
-                    value=st.session_state.get("search_value_alumnos", ""),
-                    label_visibility="collapsed" # Ocultar la etiqueta
-                )
-        
-
-
-    @st.cache_data(ttl=600) # Cachea los datos por 10 minutos
-    def cargar_datos_alumnos(grupo_id_seleccionado, status_filter):
-        conn = get_connection()
-        query_alumnos = "SELECT a.*, g.nombre_grupo FROM Alumnos a LEFT JOIN Inscripciones i ON a.alumno_id = i.alumno_id LEFT JOIN Grupos g ON i.grupo_id = g.grupo_id"
-        params = []
-        where_clauses = []
-
-        if grupo_id_seleccionado != 0:
-            where_clauses.append("g.grupo_id = %s")
-            params.append(grupo_id_seleccionado)
-        
-        if status_filter == "Todos":
-            where_clauses.append("a.status_alumno IN ('Activo', 'Restringido', 'Baja')")
-        elif status_filter == "Activo":
-            where_clauses.append("a.status_alumno = 'Activo'")
-        elif status_filter in ("Restringido", "Baja"):
-            where_clauses.append("a.status_alumno = %s")
-            params.append(status_filter)
-        else:
-            where_clauses.append("a.status_alumno != 'Finalizado'")
-
-        if where_clauses:
-            query_alumnos += " WHERE " + " AND ".join(where_clauses)
-        
-        query_alumnos += " ORDER BY g.nombre_grupo ASC, a.nombre_completo ASC;"
-        df_alumnos_raw = pd.read_sql(query_alumnos, conn, params=tuple(params))
-        return df_alumnos_raw
-
     try:
-        df_alumnos_raw = cargar_datos_alumnos(grupo_id_seleccionado, status_filter)
+        df_alumnos_raw, status_counts = cargar_datos_alumnos(grupo_id_seleccionado, status_filter)
+
+        display_span_content = ""
+        if status_filter == "Restringido":
+            display_span_content = f"<span style='color: orange;'>🟠 Restringidos: {status_counts.get('Restringido', 0)}</span>"
+        elif status_filter == "Baja":
+            display_span_content = f"<span style='color: red;'>🔴 Baja: {status_counts.get('Baja', 0)}</span>"
+        else:
+            display_span_content = f"<span style='color: green;'>🟢 Activos: {status_counts.get('Activo', 0)}</span>"
+        
+        span_placeholder.markdown(f"""<div style='display: flex; justify-content: center;'>{display_span_content}</div>""", unsafe_allow_html=True)
+
 
         if search_term and search_term.strip():
             search_term_clean = search_term.strip()
-            df_alumnos_raw = df_alumnos_raw[
-                df_alumnos_raw["nombre_completo"].str.contains(search_term_clean, case=False, na=False) | 
-                df_alumnos_raw["matricula"].str.contains(search_term_clean, case=False, na=False) | 
-                df_alumnos_raw["correo"].str.contains(search_term_clean, case=False, na=False)
-            ]
+            if not df_alumnos_raw.empty: # Añadir esta comprobación
+                df_alumnos_raw = df_alumnos_raw[
+                    df_alumnos_raw["nombre_completo"].str.contains(search_term_clean, case=False, na=False) |
+                    df_alumnos_raw["matricula"].str.contains(search_term_clean, case=False, na=False) |
+                    df_alumnos_raw["correo"].str.contains(search_term_clean, case=False, na=False)
+                ]
         
         if df_alumnos_raw.empty:
             st.info("No se encontraron alumnos con los filtros seleccionados.")
@@ -270,27 +341,32 @@ with tab_alumnos:
 
             grupos_en_data = df_alumnos_raw['nombre_grupo'].fillna("Alumnos sin grupo").unique()
             for grupo in grupos_en_data:
-                df_grupo_actual = df_alumnos_raw[df_alumnos_raw['nombre_grupo'].fillna("Alumnos sin grupo") == grupo]
-                st.markdown(f"<h4 style='text-align: left; color: #3498DB; margin-top: 20px;'>Grupo: {grupo} <span style='color: orange;'>({len(df_grupo_actual)} alumnos)</span></h4>", unsafe_allow_html=True)
-                renderers = {
-                    "Acciones": render_acciones_alumno, # <-- Botón Amarillo
-                    "Nombre": lambda row, idx: st.write(row['nombre_completo']),
-                    "Grupo": lambda row, idx: st.write(row['nombre_grupo']),
-                    "Status": lambda row, idx: st.selectbox("Status", ["Activo", "Baja", "Restringido", "Finalizado"], index=["Activo", "Baja", "Restringido", "Finalizado"].index(row['status_alumno']), key=f"status_{row['alumno_id']}_{idx}", on_change=handle_status_change, args=(row['alumno_id'],), label_visibility="collapsed"),
-                    "Certificado": lambda row, idx: st.selectbox("Certificado", ["Pendiente", "Certificado"], index=["Pendiente", "Certificado"].index(row['certificado']), key=f"certificado_{row['alumno_id']}_{idx}", on_change=handle_certificado_change, args=(row['alumno_id'],), label_visibility="collapsed"),
-                    "Matrícula": lambda row, idx: st.write(row['matricula']),
-                    "Correo": lambda row, idx: st.write(row['correo']),
-                    "Teléfono": lambda row, idx: st.write(row['telefono']),
-                    "Fecha Nacimiento": lambda row, idx: st.write(row['fecha_nacimiento'].strftime('%Y-%m-%d') if row['fecha_nacimiento'] else "N/A"),
-                }
-                st.markdown('<div class="table-container">', unsafe_allow_html=True)
-                display_data_table(
-                    df=df_grupo_actual,
-                    col_widths=[3, 4, 2, 4, 4.5, 3, 4, 3, 3],
-                    headers=["Acciones", "Nombre", "Grupo", "Status", "Certificado", "Matrícula", "Correo", "Teléfono", "Fecha Nacimiento"],
-                    custom_renderers=renderers
-                )
-                st.markdown('</div>', unsafe_allow_html=True)
+                if not df_alumnos_raw.empty: # Añadir esta comprobación
+                    df_grupo_actual = df_alumnos_raw[df_alumnos_raw['nombre_grupo'].fillna("Alumnos sin grupo") == grupo]
+                    st.markdown(f"<h4 style='text-align: left; color: #3498DB; margin-top: 20px;'>Grupo: {grupo} <span style='color: orange;'>({len(df_grupo_actual)} alumnos)</span></h4>", unsafe_allow_html=True)
+                    renderers = {
+                        "Acciones": render_acciones_alumno, # <-- Botón Amarillo
+                        "Nombre": lambda row, idx: st.write(row['nombre_completo']),
+                        "Grupo": lambda row, idx: st.write(row['nombre_grupo']),
+                        "Status": lambda row, idx: st.selectbox("Status", ["Activo", "Baja", "Restringido", "Finalizado"], index=["Activo", "Baja", "Restringido", "Finalizado"].index(row['status_alumno']), key=f"status_{row['alumno_id']}_{idx}", on_change=handle_status_change, args=(row['alumno_id'],), label_visibility="collapsed"),
+                        "Certificado": lambda row, idx: st.selectbox("Certificado", ["Pendiente", "Certificado"], index=["Pendiente", "Certificado"].index(row['certificado']), key=f"certificado_{row['alumno_id']}_{idx}", on_change=handle_certificado_change, args=(row['alumno_id'],), label_visibility="collapsed"),
+                        "Matrícula": lambda row, idx: st.write(row['matricula']),
+                        "Correo": lambda row, idx: st.write(row['correo']),
+                        "Teléfono": lambda row, idx: st.write(row['telefono']),
+                        
+                        # (CORRECCIÓN 3: Línea limpiada de texto duplicado y usando pd.notna)
+                        "Estado de Residencia": lambda row, idx: st.markdown(str(row['estado_residencia']) if pd.notna(row['estado_residencia']) else "N/A"),
+                        
+                        "Fecha Nacimiento": lambda row, idx: st.write(row['fecha_nacimiento'].strftime('%d/%m/%Y') if pd.notna(row['fecha_nacimiento']) else "N/A")
+                    }
+                    st.markdown('<div class="table-container">', unsafe_allow_html=True)
+                    display_data_table(
+                        df=df_grupo_actual,
+                        col_widths=[3, 4, 2, 4, 4.5, 3, 4, 3, 3.5, 3],
+                        headers=["Acciones", "Nombre", "Grupo", "Status", "Certificado", "Matrícula", "Correo", "Teléfono", "Estado de Residencia", "Fecha Nacimiento"],
+                        custom_renderers=renderers
+                    )
+                    st.markdown('</div>', unsafe_allow_html=True)
     except Exception as e:
         st.error(f"Error al cargar la lista de alumnos: {e}")
 
@@ -317,7 +393,7 @@ with tab_grupos:
         conn.rollback()
     
     # --- FORMULARIO DE AÑADIR NUEVO GRUPO ---
-    with st.expander("Añadir Nuevo Grupo"):
+    with st.expander(" Añadir Nuevo Grupo"):
         with st.form("nuevo_grupo_form", clear_on_submit=True):
             st.subheader("Datos del Nuevo Grupo")
             @st.cache_data(ttl=600)
@@ -344,7 +420,8 @@ with tab_grupos:
                         options=df_profesores_options['profesor_id'], 
                         format_func=lambda x: df_profesores_options.loc[df_profesores_options['profesor_id'] == x, 'nombre_completo'].iloc[0],
                         index=None,
-                        placeholder="Selecciona un profesor..."
+                        placeholder="Selecciona un profesor...",
+                        key="grupo_profesor_selectbox" # Añadir key único
                     )
                 else:
                     st.warning("No hay profesores 'Activos' disponibles.")
@@ -420,13 +497,13 @@ with tab_grupos:
                 df_grupos = df_grupos[df_grupos['nombre_grupo'].str.contains(search_term_grupos.strip(), case=False, na=False)]
 
             # (CORREGIDO): Función de renderizado con los colores solicitados
-            def render_acciones_grupo(row):
+            def render_acciones_grupo(row, idx): # Añadido idx para consistencia
                 # Gracias a la lógica de auto-archivado, los grupos viejos
                 # entrarán aquí automáticamente.
                 if row['status_grupo'] == 'Finalizado':
                     # Botón Verde (Restablecer)
                     st.markdown('<div class="btn-success">', unsafe_allow_html=True)
-                    st.button("♻️ Restablecer", key=f"reset_grupo_{row['grupo_id']}", on_click=open_modal, args=("reset_grupo", row['grupo_id']), use_container_width=True)
+                    st.button("♻️ Restablecer", key=f"reset_grupo_{row['grupo_id']}_{idx}", on_click=open_modal, args=("reset_grupo", row['grupo_id']), use_container_width=True)
                     st.markdown('</div>', unsafe_allow_html=True)
                 else:
                     # Grupos 'Activos' o 'Próximos'
@@ -434,21 +511,21 @@ with tab_grupos:
                     with col1:
                         # Botón Amarillo (Editar)
                         st.markdown('<div class="btn-warning">', unsafe_allow_html=True)
-                        st.button("✏️ Editar", key=f"edit_grupo_{row['grupo_id']}", on_click=open_modal, args=("edit_grupo", row['grupo_id']), use_container_width=True)
+                        st.button("✏️ Editar", key=f"edit_grupo_{row['grupo_id']}_{idx}", on_click=open_modal, args=("edit_grupo", row['grupo_id']), use_container_width=True)
                         st.markdown('</div>', unsafe_allow_html=True)
                     with col2:
                         # Botón Rojo (Finalizar)
                         st.markdown('<div class="btn-danger">', unsafe_allow_html=True)
-                        st.button("✅ Finalizar", key=f"finalize_grupo_{row['grupo_id']}", on_click=open_modal, args=("finalize_grupo", row['grupo_id']), use_container_width=True)
+                        st.button("✅ Finalizar", key=f"finalize_grupo_{row['grupo_id']}_{idx}", on_click=open_modal, args=("finalize_grupo", row['grupo_id']), use_container_width=True)
                         st.markdown('</div>', unsafe_allow_html=True)
             
             grupo_renderers = {
                 "Acciones": render_acciones_grupo,
-                "Grupo": lambda row: st.write(row['nombre_grupo']),
-                "Status": lambda row: st.write(row['status_grupo']),
-                "Fecha Inicio": lambda row: st.write(row['fecha_inicio'].strftime('%d/%m/%Y') if pd.notna(row['fecha_inicio']) else "N/A"),
-                "Fecha Término": lambda row: st.write(row['fecha_termino'].strftime('%d/%m/%Y') if pd.notna(row['fecha_termino']) else "N/A"),
-                "Profesor": lambda row: st.write(row['nombre_profesor'])
+                "Grupo": lambda row, idx: st.write(row['nombre_grupo']),
+                "Status": lambda row, idx: st.write(row['status_grupo']),
+                "Fecha Inicio": lambda row, idx: st.write(row['fecha_inicio'].strftime('%d/%m/%Y') if pd.notna(row['fecha_inicio']) else "N/A"),
+                "Fecha Término": lambda row, idx: st.write(row['fecha_termino'].strftime('%d/%m/%Y') if pd.notna(row['fecha_termino']) else "N/A"),
+                "Profesor": lambda row, idx: st.write(row['nombre_profesor'])
             }
 
             st.markdown('<div class="table-container">', unsafe_allow_html=True)
@@ -503,7 +580,7 @@ with tab_profesores:
                     st.session_state["search_value_profesores"] = st.session_state["search_profesores_realtime"]
             with col_search_input_profesores:
                 search_profesores = st.text_input(
-                "Buscar Profesor", 
+                "Buscar Profesor",
                 key="search_profesores_realtime",
                 placeholder="Escribe para filtrar profesores...",
                 value=st.session_state.get("search_value_profesores", ""),
@@ -516,23 +593,23 @@ with tab_profesores:
                 df_profesores = df_profesores[df_profesores['nombre_completo'].str.contains(search_profesores.strip(), case=False, na=False)]
 
             # (CORREGIDO): Función de renderizado con los colores solicitados
-            def render_acciones_profesor(row):
+            def render_acciones_profesor(row, idx): # Añadido idx
                 col1, col2 = st.columns(2)
                 with col1:
                     # Botón Amarillo (Editar)
                     st.markdown('<div class="btn-warning">', unsafe_allow_html=True)
-                    st.button("✏️ Editar", key=f"edit_prof_{row['profesor_id']}", on_click=open_modal, args=("edit_profesor", row['profesor_id']), use_container_width=True)
+                    st.button("✏️ Editar", key=f"edit_prof_{row['profesor_id']}_{idx}", on_click=open_modal, args=("edit_profesor", row['profesor_id']), use_container_width=True)
                     st.markdown('</div>', unsafe_allow_html=True)
                 with col2:
                     # Botón Rojo (Baja)
                     st.markdown(f'<div class="btn-danger">', unsafe_allow_html=True)
-                    st.button("❌ Baja", key=f"delete_prof_{row['profesor_id']}", on_click=open_modal, args=("delete_profesor", row['profesor_id']), use_container_width=True)
+                    st.button("❌ Baja", key=f"delete_prof_{row['profesor_id']}_{idx}", on_click=open_modal, args=("delete_profesor", row['profesor_id']), use_container_width=True)
                     st.markdown(f'</div>', unsafe_allow_html=True)
 
             profesor_renderers = {
                 "Acciones": render_acciones_profesor,
-                "Nombre Completo": lambda row: st.write(row['nombre_completo']),
-                "Status": lambda row: st.write(row['status'])
+                "Nombre Completo": lambda row, idx: st.write(row['nombre_completo']),
+                "Status": lambda row, idx: st.write(row['status'])
             }
 
             st.markdown('<div class="table-container">', unsafe_allow_html=True)
@@ -649,8 +726,8 @@ def modal_editar_alumno(alumno_data, conn):
                     
                     conn.commit()
                     st.success("Alumno actualizado con éxito.")
-                    cargar_datos_alumnos.clear()
-                    get_alumno_data.clear()
+                    cargar_datos_alumnos.clear() # Esta línea ahora funciona
+                    get_alumno_data.clear() # Esta línea ahora funciona
                     close_modal_and_rerun()
             except Exception as e:
                 st.error(f"Error al actualizar alumno: {e}")
@@ -699,6 +776,7 @@ def modal_editar_grupo(grupo_data, conn):
                         cur.execute(sql, (nombre_grupo, status_grupo, int(prof_id), fecha_inicio, fecha_termino, int(grupo_data['grupo_id'])))
                         conn.commit()
                     st.success("Grupo actualizado.")
+                    get_grupo_data.clear() # Esta línea ahora funciona
                     close_modal_and_rerun()
                 except Exception as e:
                     st.error(f"Error al actualizar el grupo: {e}")
@@ -816,11 +894,11 @@ def modal_editar_profesor(profesor_data, conn):
                     cur.execute(sql, (nombre_profesor, status_profesor, int(profesor_data['profesor_id'])))
                     conn.commit()
                 st.success("Profesor actualizado.")
+                get_profesor_data.clear() # Esta línea ahora funciona
                 close_modal_and_rerun()
             except Exception as e:
                 st.error(f"Error al actualizar: {e}")
-                conn.rollback()
-        
+                conn.rollback()         
         if cancelled:
             close_modal_and_rerun()
 
@@ -861,27 +939,19 @@ if "modal_tipo" in st.session_state and st.session_state.modal_tipo is not None:
     st.session_state.modal_tipo = None
     st.session_state.modal_id = None
     try:
+        # (CORRECCIÓN 1: Las definiciones de funciones se eliminaron de aquí)
         if tipo == "edit_alumno":
-            @st.cache_data(ttl=600)
-            def get_alumno_data(alumno_id, _connection):
-                return pd.read_sql(f"SELECT * FROM Alumnos WHERE alumno_id = {alumno_id}", _connection).iloc[0]
-            alumno_data = get_alumno_data(obj_id, conn)
+            alumno_data = get_alumno_data(obj_id, conn) # Ahora solo se llama a la función global
             modal_editar_alumno(alumno_data, conn)
         elif tipo == "edit_grupo":
-            @st.cache_data(ttl=600)
-            def get_grupo_data(grupo_id, _connection):
-                return pd.read_sql(f"SELECT * FROM Grupos WHERE grupo_id = {grupo_id}", _connection).iloc[0]
-            grupo_data = get_grupo_data(obj_id, conn)
+            grupo_data = get_grupo_data(obj_id, conn) # Ahora solo se llama
             modal_editar_grupo(grupo_data, conn)
         elif tipo == "finalize_grupo":
             modal_finalizar_grupo(obj_id, conn)
         elif tipo == "reset_grupo":
             modal_restablecer_grupo(obj_id, conn)
         elif tipo == "edit_profesor":
-            @st.cache_data(ttl=600)
-            def get_profesor_data(profesor_id, _connection):
-                return pd.read_sql(f"SELECT * FROM Profesores WHERE profesor_id = {profesor_id}", _connection).iloc[0]
-            profesor_data = get_profesor_data(obj_id, conn)
+            profesor_data = get_profesor_data(obj_id, conn) # Ahora solo se llama
             modal_editar_profesor(profesor_data, conn)
         elif tipo == "delete_profesor":
             modal_eliminar_profesor(obj_id, conn)
@@ -890,3 +960,97 @@ if "modal_tipo" in st.session_state and st.session_state.modal_tipo is not None:
         st.rerun()
     except Exception as e:
         st.error(f"Error al procesar el modal: {e}")
+
+
+# --- (NUEVO) COMPONENTE "SCROLL TO TOP" ---
+# (Pega esto al final de tu archivo .py)
+
+scroll_to_top_html = """
+<style>
+    /* 1. El Estilo (CSS) del Botón */
+    #scrollToTopBtn {
+        display: none; /* Oculto por defecto */
+        position: fixed; /* Se queda fijo en la pantalla */
+        bottom: 20px; /* A 20px del borde inferior */
+        right: 30px; /* A 30px del borde derecho */
+        z-index: 99; /* Se asegura que esté sobre otros elementos */
+        border: none;
+        outline: none;
+        background-color: #3498DB; /* Color azul (puedes cambiarlo) */
+        color: white; /* Color de la flecha */
+        cursor: pointer;
+        padding: 12px 15px; /* Tamaño del botón */
+        border-radius: 10px; /* Bordes redondeados */
+        font-size: 18px; /* Tamaño de la flecha */
+        transition: background-color 0.3s;
+    }
+
+    #scrollToTopBtn:hover {
+        background-color: #2980B9; /* Color más oscuro al pasar el mouse */
+    }
+</style>
+
+<!-- 2. El Botón (HTML) -->
+<button onclick="topFunction()" id="scrollToTopBtn" title="Ir al inicio"><b>&uarr;</b></button>
+
+<script>
+    /* 3. La Lógica (JavaScript) */
+
+    // Esta función se autoejecuta para configurar el listener de scroll
+    (function() {
+        try {
+            // 1. Busca el contenedor de scroll principal de Streamlit
+            var scrollContainer = parent.document.querySelector('[data-testid="stAppViewContainer"] > section');
+
+            // 2. Si no lo encuentra, usa el body principal (fallback)
+            if (!scrollContainer) {
+                scrollContainer = parent.document.documentElement || parent.document.body;
+            }
+            
+            // 3. Busca el botón (que está en este HTML)
+            var mybutton = document.getElementById("scrollToTopBtn");
+            
+            if (mybutton) {
+                // 4. Asigna la función de scroll al contenedor
+                scrollContainer.onscroll = function() {
+                    // Muestra el botón después de 100px de scroll
+                    if (scrollContainer.scrollTop > 100) { 
+                        mybutton.style.display = "block";
+                    } else {
+                        mybutton.style.display = "none";
+                    }
+                };
+            }
+        } catch (e) {
+            // Manejar errores si los selectores fallan
+            console.error("Error al configurar el botón de scroll:", e);
+        }
+    })();
+
+    // Esta función es llamada por el 'onclick' del botón
+    function topFunction() {
+        try {
+            // 1. Busca el contenedor de scroll principal de Streamlit
+            var scrollContainer = parent.document.querySelector('[data-testid="stAppViewContainer"] > section');
+
+            // 2. Si no lo encuentra, usa el body principal (fallback)
+            if (!scrollContainer) {
+                parent.document.body.scrollTop = 0; // Safari
+                parent.document.documentElement.scrollTop = 0; // Otros
+            } else {
+                // 3. Versión moderna con scroll suave
+                scrollContainer.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            }
+        } catch (e) {
+             console.error("Error al hacer scroll top:", e);
+        }
+    }
+</script>
+"""
+
+# Renderizar el componente en la página
+st.markdown(scroll_to_top_html, unsafe_allow_html=True)
+
