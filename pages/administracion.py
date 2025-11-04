@@ -87,12 +87,12 @@ def display_data_table(df, col_widths, headers, custom_renderers):
             col.markdown(f"**{header}**")
 
     # Filas del cuerpo
-    for _, row in df.iterrows():
+    for idx, row in df.iterrows():
         with st.container(border=True):
             cols = st.columns(col_widths)
             for col, (header, renderer) in zip(cols, custom_renderers.items()):
                 with col:
-                    renderer(row)
+                    renderer(row, idx)
 
 # --- HANDLERS Y FUNCIONES DE MODAL ---
 def handle_status_change(alumno_id):
@@ -223,10 +223,8 @@ with tab_alumnos:
         
         if status_filter == "Todos":
             where_clauses.append("a.status_alumno IN ('Activo', 'Restringido', 'Baja')")
-            where_clauses.append("g.grupo_id IS NOT NULL")
         elif status_filter == "Activo":
             where_clauses.append("a.status_alumno = 'Activo'")
-            where_clauses.append("g.grupo_id IS NOT NULL")
         elif status_filter in ("Restringido", "Baja"):
             where_clauses.append("a.status_alumno = %s")
             params.append(status_filter)
@@ -252,9 +250,9 @@ with tab_alumnos:
         else:
             
             # (CORREGIDO): Función para renderizar el botón de editar (Amarillo)
-            def render_acciones_alumno(row):
+            def render_acciones_alumno(row, idx):
                 st.markdown('<div class="btn-warning">', unsafe_allow_html=True)
-                st.button("✏️ Editar", key=f"edit_alumno_{row['alumno_id']}", on_click=open_modal, args=("edit_alumno", row['alumno_id']), use_container_width=True)
+                st.button("✏️ Editar", key=f"edit_alumno_{row['alumno_id']}_{idx}", on_click=open_modal, args=("edit_alumno", row['alumno_id']), use_container_width=True)
                 st.markdown('</div>', unsafe_allow_html=True)
 
             grupos_en_data = df_alumnos_raw['nombre_grupo'].fillna("Alumnos sin grupo").unique()
@@ -263,14 +261,14 @@ with tab_alumnos:
                 df_grupo_actual = df_alumnos_raw[df_alumnos_raw['nombre_grupo'].fillna("Alumnos sin grupo") == grupo]
                 renderers = {
                     "Acciones": render_acciones_alumno, # <-- Botón Amarillo
-                    "Nombre": lambda row: st.write(row['nombre_completo']),
-                    "Grupo": lambda row: st.write(row['nombre_grupo']),
-                    "Status": lambda row: st.selectbox("Status", ["Activo", "Baja", "Restringido", "Finalizado"], index=["Activo", "Baja", "Restringido", "Finalizado"].index(row['status_alumno']), key=f"status_{row['alumno_id']}", on_change=handle_status_change, args=(row['alumno_id'],), label_visibility="collapsed"),
-                    "Certificado": lambda row: st.selectbox("Certificado", ["Pendiente", "Certificado"], index=["Pendiente", "Certificado"].index(row['certificado']), key=f"certificado_{row['alumno_id']}", on_change=handle_certificado_change, args=(row['alumno_id'],), label_visibility="collapsed"),
-                    "Matrícula": lambda row: st.write(row['matricula']),
-                    "Correo": lambda row: st.write(row['correo']),
-                    "Teléfono": lambda row: st.write(row['telefono']),
-                    "Fecha Nacimiento": lambda row: st.write(row['fecha_nacimiento'].strftime('%d/%m/%Y') if pd.notna(row['fecha_nacimiento']) else "N/A"),
+                    "Nombre": lambda row, idx: st.write(row['nombre_completo']),
+                    "Grupo": lambda row, idx: st.write(row['nombre_grupo']),
+                    "Status": lambda row, idx: st.selectbox("Status", ["Activo", "Baja", "Restringido", "Finalizado"], index=["Activo", "Baja", "Restringido", "Finalizado"].index(row['status_alumno']), key=f"status_{row['alumno_id']}_{idx}", on_change=handle_status_change, args=(row['alumno_id'],), label_visibility="collapsed"),
+                    "Certificado": lambda row, idx: st.selectbox("Certificado", ["Pendiente", "Certificado"], index=["Pendiente", "Certificado"].index(row['certificado']), key=f"certificado_{row['alumno_id']}_{idx}", on_change=handle_certificado_change, args=(row['alumno_id'],), label_visibility="collapsed"),
+                    "Matrícula": lambda row, idx: st.write(row['matricula']),
+                    "Correo": lambda row, idx: st.write(row['correo']),
+                    "Teléfono": lambda row, idx: st.write(row['telefono']),
+                    "Fecha Nacimiento": lambda row, idx: st.write(row['fecha_nacimiento'].strftime('%Y-%m-%d') if row['fecha_nacimiento'] else "N/A"),
                 }
                 st.markdown('<div class="table-container">', unsafe_allow_html=True)
                 display_data_table(
