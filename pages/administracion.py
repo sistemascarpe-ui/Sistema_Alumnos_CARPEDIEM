@@ -100,6 +100,11 @@ def handle_status_change(alumno_id):
         with conn.cursor() as cur:
             cur.execute("UPDATE Alumnos SET status_alumno = %s WHERE alumno_id = %s", (nuevo_status, int(alumno_id)))
             conn.commit()
+        
+        # ----- ¡AQUÍ ESTÁ LA CORRECCIÓN! -----
+        # Limpia el caché para forzar la recarga de los conteos
+        cargar_datos_alumnos.clear()
+        
         st.success(f"Status del alumno {alumno_id} actualizado a {nuevo_status}.")
         st.rerun()
     except Exception as e:
@@ -113,6 +118,11 @@ def handle_certificado_change(alumno_id):
         with conn.cursor() as cur:
             cur.execute("UPDATE Alumnos SET certificado = %s WHERE alumno_id = %s", (nuevo_certificado, int(alumno_id)))
             conn.commit()
+        
+        # ----- ¡AQUÍ ESTÁ LA CORRECCIÓN! -----
+        # Limpia el caché también aquí (buena práctica)
+        cargar_datos_alumnos.clear()
+
         st.success(f"Certificado del alumno {alumno_id} actualizado a {nuevo_certificado}.")
         st.rerun()
     except Exception as e:
@@ -201,14 +211,23 @@ def cargar_datos_alumnos(grupo_id_seleccionado, status_filter):
     df_alumnos_raw = pd.read_sql(query_alumnos, conn, params=tuple(params))
 
     # Obtener conteo de alumnos por estado
-    query_status_counts = "SELECT a.status_alumno, COUNT(a.alumno_id) FROM Alumnos a LEFT JOIN (SELECT i.alumno_id, i.grupo_id, ROW_NUMBER() OVER(PARTITION BY i.alumno_id ORDER BY i.inscripcion_id DESC) as rn FROM Inscripciones i) i ON a.alumno_id = i.alumno_id AND i.rn = 1 LEFT JOIN Grupos g ON i.grupo_id = g.grupo_id"
-    status_counts_params = []
-    status_counts_where_clauses = []
-
-    if grupo_id_seleccionado != 0:
-        status_counts_where_clauses.append("g.grupo_id = %s")
-        status_counts_params.append(grupo_id_seleccionado)
+    # (CORRECCIÓN 4.1: Aplicar la misma lógica de "solo más reciente" al conteo)
+    query_status_counts = """
+        SELECT a.status_alumno, COUNT(a.alumno_id) 
+        FROM Alumnos a 
+        LEFT JOIN (
+            SELECT i.alumno_id, i.grupo_id, ROW_NUMBER() OVER(PARTITION BY i.alumno_id ORDER BY i.inscripcion_id DESC) as rn 
+            FROM Inscripciones i
+        ) i ON a.alumno_id = i.alumno_id AND i.rn = 1 
+        LEFT JOIN Grupos g ON i.grupo_id = g.grupo_id
+    """
     
+    # --- ¡CORRECCIÓN DE CONTEO! ---
+    # Reutilizar los filtros de la consulta principal para que los conteos coincidan
+    status_counts_params = params.copy()
+    status_counts_where_clauses = where_clauses.copy()
+    # --- FIN DE CORRECCIÓN DE CONTEO ---
+
     if status_counts_where_clauses:
         query_status_counts += " WHERE " + " AND ".join(status_counts_where_clauses)
     
@@ -294,7 +313,8 @@ with tab_alumnos:
                 opciones_filtro = {0: "Mostrar Todos los Grupos"}
                 opciones_filtro.update(pd.Series(df_grupos_filtro.nombre_grupo.values, index=df_grupos_filtro.grupo_id).to_dict())
                 grupo_id_seleccionado = st.selectbox("", options=list(opciones_filtro.keys()), format_func=lambda x: opciones_filtro[x], label_visibility="collapsed")
-                
+            
+            # --- (CORREGIDO) Este es tu bloque de código de layout restaurado ---
             with col_filter2:
                 col_status_label, col_status_count = st.columns([0.5, 0.5])
                 with col_status_label:
@@ -303,6 +323,7 @@ with tab_alumnos:
                     span_placeholder = st.empty() # Placeholder for the span
                 status_options = ["Todos", "Activo", "Restringido", "Baja"]
                 status_filter = st.selectbox("", options=status_options, index=0, label_visibility="collapsed")
+            # --- Fin de tu bloque de código ---
 
             with col_filter3:
                 st.write("") # Add vertical spacing to align with filters
@@ -328,8 +349,10 @@ with tab_alumnos:
         elif status_filter == "Baja":
             display_span_content = f"<span style='color: red;'>🔴 Baja: {status_counts.get('Baja', 0)}</span>"
         else:
+            # Ahora esto mostrará el conteo de Activos, incluso si el filtro es "Todos"
             display_span_content = f"<span style='color: green;'>🟢 Activos: {status_counts.get('Activo', 0)}</span>"
         
+        # (CORREGIDO) Ajustado para tu layout original
         span_placeholder.markdown(f"""<div style='display: flex; justify-content: center;'>{display_span_content}</div>""", unsafe_allow_html=True)
 
 
@@ -982,7 +1005,7 @@ if "modal_tipo" in st.session_state and st.session_state.modal_tipo is not None:
         elif tipo == "finalize_grupo":
             modal_finalizar_grupo(obj_id, conn)
         elif tipo == "reset_grupo":
-            modal_restablecer_grupo(objid, conn)
+            modal_restablecer_grupo(obj_id, conn) # Corregido: obj_id
         elif tipo == "edit_profesor":
             profesor_data = get_profesor_data(obj_id, conn) # Ahora solo se llama
             modal_editar_profesor(profesor_data, conn)
