@@ -270,8 +270,8 @@ with tab_alumnos:
 
             grupos_en_data = df_alumnos_raw['nombre_grupo'].fillna("Alumnos sin grupo").unique()
             for grupo in grupos_en_data:
-                st.markdown(f"<h4 style='text-align: left; color: #3498DB; margin-top: 20px;'>Grupo: {grupo}</h4>", unsafe_allow_html=True)
                 df_grupo_actual = df_alumnos_raw[df_alumnos_raw['nombre_grupo'].fillna("Alumnos sin grupo") == grupo]
+                st.markdown(f"<h4 style='text-align: left; color: #3498DB; margin-top: 20px;'>Grupo: {grupo} <span style='color: orange;'>({len(df_grupo_actual)} alumnos)</span></h4>", unsafe_allow_html=True)
                 renderers = {
                     "Acciones": render_acciones_alumno, # <-- Botón Amarillo
                     "Nombre": lambda row, idx: st.write(row['nombre_completo']),
@@ -286,7 +286,7 @@ with tab_alumnos:
                 st.markdown('<div class="table-container">', unsafe_allow_html=True)
                 display_data_table(
                     df=df_grupo_actual,
-                    col_widths=[3, 4, 2, 4, 4, 3, 4, 3, 3],
+                    col_widths=[3, 4, 2, 4, 4.5, 3, 4, 3, 3],
                     headers=["Acciones", "Nombre", "Grupo", "Status", "Certificado", "Matrícula", "Correo", "Teléfono", "Fecha Nacimiento"],
                     custom_renderers=renderers
                 )
