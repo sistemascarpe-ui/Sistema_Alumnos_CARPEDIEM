@@ -201,7 +201,7 @@ def cargar_datos_alumnos(grupo_id_seleccionado, status_filter):
     df_alumnos_raw = pd.read_sql(query_alumnos, conn, params=tuple(params))
 
     # Obtener conteo de alumnos por estado
-    query_status_counts = "SELECT a.status_alumno, COUNT(a.alumno_id) FROM Alumnos a LEFT JOIN Inscripciones i ON a.alumno_id = i.alumno_id LEFT JOIN Grupos g ON i.grupo_id = g.grupo_id"
+    query_status_counts = "SELECT a.status_alumno, COUNT(a.alumno_id) FROM Alumnos a LEFT JOIN (SELECT i.alumno_id, i.grupo_id, ROW_NUMBER() OVER(PARTITION BY i.alumno_id ORDER BY i.inscripcion_id DESC) as rn FROM Inscripciones i) i ON a.alumno_id = i.alumno_id AND i.rn = 1 LEFT JOIN Grupos g ON i.grupo_id = g.grupo_id"
     status_counts_params = []
     status_counts_where_clauses = []
 
@@ -324,7 +324,7 @@ with tab_alumnos:
 
         display_span_content = ""
         if status_filter == "Restringido":
-            display_span_content = f"<span style='color: orange;'>🟠 Restringidos: {status_counts.get('Restringido', 0)}</span>"
+            display_span_content = f"<span class='restricted-span' style='color: orange;'>🟠 Restringidos: {status_counts.get('Restringido', 0)}</span>"
         elif status_filter == "Baja":
             display_span_content = f"<span style='color: red;'>🔴 Baja: {status_counts.get('Baja', 0)}</span>"
         else:

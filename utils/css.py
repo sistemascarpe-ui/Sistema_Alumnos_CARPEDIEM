@@ -365,6 +365,13 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
         height: auto !important;
     }
 
+    /* Restricted section text fixes */
+    .restricted-span {
+        letter-spacing: 0.05em !important;
+        white-space: nowrap !important;
+        padding: 0 2px !important;
+    }
+
     /* ================================================================== */
     /* === 6. ALINEACIÓN DE BOTONES E INPUTS === */
     /* ================================================================== */
