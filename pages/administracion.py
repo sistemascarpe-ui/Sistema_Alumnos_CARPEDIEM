@@ -162,7 +162,7 @@ with tab_alumnos:
             submitted = st.form_submit_button("Registrar Alumno", type="primary")
             
             if submitted: 
-                if not all([nombre, matricula, correo, fecha_nacimiento, telefono, estado, grupo_seleccionado_id]):
+                if not all([nombre, matricula, correo, telefono, estado, grupo_seleccionado_id]):
                     st.error("🚨 ¡Error! Todos los campos son obligatorios para el registro.")
                 else:
                     try:

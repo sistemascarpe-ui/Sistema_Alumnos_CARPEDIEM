@@ -378,5 +378,9 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
         flex-grow: 1;
     }
 
+    /* Ocultar mensaje 'press enter to submit form' de formularios Streamlit */
+    [data-testid="stFormSubmitHint"] {
+        display: none !important;
+    }
     </style>
     """, unsafe_allow_html=True)

@@ -6,6 +6,8 @@ import bcrypt
 
 from utils.css import load_css
 
+st.markdown("""<script>document.querySelector('html').setAttribute('lang', 'es');</script>""", unsafe_allow_html=True)
+
 # --- LÓGICA DE CONEXIÓN ROBUSTA ---
 @st.cache_resource
 def init_connection():
