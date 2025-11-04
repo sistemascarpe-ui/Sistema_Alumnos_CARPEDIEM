@@ -141,7 +141,11 @@ with tab_alumnos:
     with st.expander(" Registrar Nuevo Alumno"):
         with st.form("nuevo_alumno_form", clear_on_submit=True):
             st.subheader("Datos del Nuevo Alumno")
-            df_grupos_options = pd.read_sql("SELECT grupo_id, nombre_grupo FROM Grupos WHERE status_grupo = 'Activo' ORDER BY nombre_grupo ASC", conn)
+            @st.cache_data(ttl=600)
+            def get_active_groups_options():
+                conn = get_connection()
+                return pd.read_sql("SELECT grupo_id, nombre_grupo FROM Grupos WHERE status_grupo = 'Activo' ORDER BY nombre_grupo ASC", conn)
+            df_grupos_options = get_active_groups_options()
 
             col1, col2 = st.columns(2)
             with col1:
@@ -186,7 +190,10 @@ with tab_alumnos:
 
         col_filter1, col_filter2, col_filter3 = st.columns([1, 1, 2])
         with col_filter1:
-            df_grupos_filtro = pd.read_sql("SELECT grupo_id, nombre_grupo FROM Grupos ORDER BY nombre_grupo ASC", conn)
+            @st.cache_data(ttl=600)
+            def get_group_filter_options(_connection):
+                return pd.read_sql("SELECT grupo_id, nombre_grupo FROM Grupos ORDER BY nombre_grupo ASC", _connection)
+            df_grupos_filtro = get_group_filter_options(conn)
             opciones_filtro = {0: "Mostrar Todos los Grupos"}
             opciones_filtro.update(pd.Series(df_grupos_filtro.nombre_grupo.values, index=df_grupos_filtro.grupo_id).to_dict())
             grupo_id_seleccionado = st.selectbox("Filtrar por Grupo", options=list(opciones_filtro.keys()), format_func=lambda x: opciones_filtro[x])
@@ -212,7 +219,9 @@ with tab_alumnos:
         
 
 
-    try:
+    @st.cache_data(ttl=600) # Cachea los datos por 10 minutos
+    def cargar_datos_alumnos(grupo_id_seleccionado, status_filter):
+        conn = get_connection()
         query_alumnos = "SELECT a.*, g.nombre_grupo FROM Alumnos a LEFT JOIN Inscripciones i ON a.alumno_id = i.alumno_id LEFT JOIN Grupos g ON i.grupo_id = g.grupo_id"
         params = []
         where_clauses = []
@@ -236,6 +245,10 @@ with tab_alumnos:
         
         query_alumnos += " ORDER BY g.nombre_grupo ASC, a.nombre_completo ASC;"
         df_alumnos_raw = pd.read_sql(query_alumnos, conn, params=tuple(params))
+        return df_alumnos_raw
+
+    try:
+        df_alumnos_raw = cargar_datos_alumnos(grupo_id_seleccionado, status_filter)
 
         if search_term and search_term.strip():
             search_term_clean = search_term.strip()
@@ -307,7 +320,10 @@ with tab_grupos:
     with st.expander("Añadir Nuevo Grupo"):
         with st.form("nuevo_grupo_form", clear_on_submit=True):
             st.subheader("Datos del Nuevo Grupo")
-            df_profesores_options = pd.read_sql("SELECT profesor_id, nombre_completo FROM Profesores WHERE status = 'Activo' ORDER BY nombre_completo ASC", conn)
+            @st.cache_data(ttl=600)
+            def get_active_professors_options(_connection):
+                return pd.read_sql("SELECT profesor_id, nombre_completo FROM Profesores WHERE status = 'Activo' ORDER BY nombre_completo ASC", _connection)
+            df_profesores_options = get_active_professors_options(conn)
             
             col1, col2 = st.columns(2)
             with col1:
@@ -381,7 +397,10 @@ with tab_grupos:
         
         try:
             query_grupos = "SELECT g.*, p.nombre_completo as nombre_profesor FROM Grupos g LEFT JOIN Profesores p ON g.profesor_id = p.profesor_id ORDER BY g.status_grupo ASC, g.nombre_grupo ASC"
-            df_grupos = pd.read_sql(query_grupos, conn)
+            @st.cache_data(ttl=600)
+            def cargar_datos_grupos(query, _connection):
+                return pd.read_sql(query, _connection)
+            df_grupos = cargar_datos_grupos(query_grupos, conn)
             
             col_search_button_grupos, col_search_input_grupos = st.columns([0.1, 0.9])
             with col_search_button_grupos:
@@ -528,7 +547,10 @@ with tab_profesores:
 @st.dialog("✏️ Editar Alumno")
 def modal_editar_alumno(alumno_data, conn):
     # ... (código de carga de datos del modal) ...
-    df_grupos_options = pd.read_sql("SELECT grupo_id, nombre_grupo FROM Grupos WHERE status_grupo = 'Activo' ORDER BY nombre_grupo ASC", conn)
+    @st.cache_data(ttl=600)
+    def get_active_groups_for_modal(_connection):
+        return pd.read_sql("SELECT grupo_id, nombre_grupo FROM Grupos WHERE status_grupo = 'Activo' ORDER BY nombre_grupo ASC", _connection)
+    df_grupos_options = get_active_groups_for_modal(conn)
     opciones_grupo = {0: "Sin Asignar"}
     opciones_grupo.update(pd.Series(df_grupos_options.nombre_grupo.values, index=df_grupos_options.grupo_id.astype(int)).to_dict())
     current_grupo_id = 0
@@ -547,13 +569,18 @@ def modal_editar_alumno(alumno_data, conn):
             # Verificar si el grupo existe en las opciones
             if current_grupo_id not in opciones_grupo:
                 # Obtener el nombre del grupo aunque no esté activo
-                grupo_query = f"SELECT nombre_grupo FROM Grupos WHERE grupo_id = {current_grupo_id}"
-                grupo_result = pd.read_sql(grupo_query, conn)
-                if not grupo_result.empty:
-                    # Añadir el grupo a las opciones aunque no esté activo
-                    opciones_grupo[current_grupo_id] = f"{grupo_result.iloc[0]['nombre_grupo']} (Inactivo)"
-                    # Actualizar la lista de opciones
-                    lista_ids_opciones = list(opciones_grupo.keys())
+                @st.cache_data(ttl=600)
+                def get_inactive_group_name(grupo_id, _connection):
+                    grupo_result_inner = pd.read_sql(f"SELECT nombre_grupo FROM Grupos WHERE grupo_id = {grupo_id}", _connection)
+                    if not grupo_result_inner.empty:
+                        return grupo_result_inner.iloc[0]['nombre_grupo']
+                    return "Grupo Desconocido" # Fallback si el grupo no se encuentra
+                
+                grupo_name = get_inactive_group_name(current_grupo_id, conn)
+                # Añadir el grupo a las opciones aunque no esté activo
+                opciones_grupo[current_grupo_id] = f"{grupo_name} (Inactivo)"
+                # Actualizar la lista de opciones
+                lista_ids_opciones = list(opciones_grupo.keys())
     except Exception as e:
         st.error(f"Error al obtener grupo: {e}")
         pass
@@ -599,6 +626,14 @@ def modal_editar_alumno(alumno_data, conn):
                     sql_alumno = "UPDATE Alumnos SET nombre_completo=%s, status_alumno=%s, matricula=%s, correo=%s, telefono=%s, estado_residencia=%s, fecha_nacimiento=%s WHERE alumno_id=%s"
                     cur.execute(sql_alumno, (nombre, status, matricula, correo, telefono, estado, fecha_nacimiento, alumno_id_int))
                     
+                    @st.cache_data(ttl=600)
+                    def get_latest_grupo_id(alumno_id, _connection):
+                        with _connection.cursor() as cur_inner:
+                            cur_inner.execute("SELECT grupo_id FROM Inscripciones WHERE alumno_id = %s ORDER BY inscripcion_id DESC LIMIT 1", (alumno_id,))
+                            res = cur_inner.fetchone()
+                            return res[0] if res else None
+                    grupo_id_actual = get_latest_grupo_id(alumno_id_int, conn)
+
                     cur.execute("SELECT i.inscripcion_id FROM Inscripciones i WHERE i.alumno_id = %s AND EXISTS (SELECT 1 FROM Pagos p WHERE p.inscripcion_id = i.inscripcion_id)", (alumno_id_int,))
                     insc_con_pagos = cur.fetchone()
                     
@@ -614,6 +649,8 @@ def modal_editar_alumno(alumno_data, conn):
                     
                     conn.commit()
                     st.success("Alumno actualizado con éxito.")
+                    cargar_datos_alumnos.clear()
+                    get_alumno_data.clear()
                     close_modal_and_rerun()
             except Exception as e:
                 st.error(f"Error al actualizar alumno: {e}")
@@ -695,7 +732,10 @@ def modal_finalizar_grupo(grupo_id, conn):
                 grupo_info = cur.fetchone()
                 if grupo_info:
                     nombre_grupo, nombre_profesor, fecha_inicio, fecha_termino = grupo_info
-                    df_alumnos_grupo = pd.read_sql("SELECT a.nombre_completo, a.matricula, a.status_alumno, a.certificado FROM Alumnos a JOIN Inscripciones i ON a.alumno_id = i.alumno_id WHERE i.grupo_id = %s", conn, params=(grupo_id_int,))
+                    @st.cache_data(ttl=600)
+                    def get_alumnos_grupo_data(grupo_id, _connection):
+                        return pd.read_sql("SELECT a.nombre_completo, a.matricula, a.status_alumno, a.certificado FROM Alumnos a JOIN Inscripciones i ON a.alumno_id = i.alumno_id WHERE i.grupo_id = %s", _connection, params=(grupo_id,))
+                    df_alumnos_grupo = get_alumnos_grupo_data(grupo_id_int, conn)
                     alumnos_list_final = [{'nombre': al['nombre_completo'], 'matricula': al['matricula'], 'status_final': al['status_alumno'], 'certificado': al['certificado']} for i, al in df_alumnos_grupo.iterrows()]
                     snapshot_json = json.dumps({"alumnos": alumnos_list_final}, indent=4, default=str)
                     cur.execute("INSERT INTO Grupos_Historial (nombre_grupo, nombre_profesor, datos_grupo_alumnos, fecha_inicio, fecha_termino) VALUES (%s, %s, %s, %s, %s)", (nombre_grupo, nombre_profesor, snapshot_json, fecha_inicio, fecha_termino))
@@ -822,17 +862,26 @@ if "modal_tipo" in st.session_state and st.session_state.modal_tipo is not None:
     st.session_state.modal_id = None
     try:
         if tipo == "edit_alumno":
-            alumno_data = pd.read_sql(f"SELECT * FROM Alumnos WHERE alumno_id = {obj_id}", conn).iloc[0]
+            @st.cache_data(ttl=600)
+            def get_alumno_data(alumno_id, _connection):
+                return pd.read_sql(f"SELECT * FROM Alumnos WHERE alumno_id = {alumno_id}", _connection).iloc[0]
+            alumno_data = get_alumno_data(obj_id, conn)
             modal_editar_alumno(alumno_data, conn)
         elif tipo == "edit_grupo":
-            grupo_data = pd.read_sql(f"SELECT * FROM Grupos WHERE grupo_id = {obj_id}", conn).iloc[0]
+            @st.cache_data(ttl=600)
+            def get_grupo_data(grupo_id, _connection):
+                return pd.read_sql(f"SELECT * FROM Grupos WHERE grupo_id = {grupo_id}", _connection).iloc[0]
+            grupo_data = get_grupo_data(obj_id, conn)
             modal_editar_grupo(grupo_data, conn)
         elif tipo == "finalize_grupo":
             modal_finalizar_grupo(obj_id, conn)
         elif tipo == "reset_grupo":
             modal_restablecer_grupo(obj_id, conn)
         elif tipo == "edit_profesor":
-            profesor_data = pd.read_sql(f"SELECT * FROM Profesores WHERE profesor_id = {obj_id}", conn).iloc[0]
+            @st.cache_data(ttl=600)
+            def get_profesor_data(profesor_id, _connection):
+                return pd.read_sql(f"SELECT * FROM Profesores WHERE profesor_id = {profesor_id}", _connection).iloc[0]
+            profesor_data = get_profesor_data(obj_id, conn)
             modal_editar_profesor(profesor_data, conn)
         elif tipo == "delete_profesor":
             modal_eliminar_profesor(obj_id, conn)
