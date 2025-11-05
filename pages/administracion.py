@@ -30,6 +30,7 @@ with st.sidebar:
     st.page_link("pages/recibos.py", label="Recibos de Pago", icon="🧾")
     # Asegúrate que el nombre del archivo sea Historial.py o historial.py
     st.page_link("pages/Historial.py", label="Historial de Grupos", icon="📚") 
+    st.page_link("pages/metricas.py", label="Métricas Históricas", icon="📈")
     
     st.markdown("---")
     

@@ -3,8 +3,8 @@ import streamlit as st
 def load_css():
     st.markdown("""
     <style>
-    [data-testid="stSidebarNavItems"] {
-        display: none;
+    [data-testid="stSidebar"] [data-testid="stSidebarNavItems"] {
+        display: none !important;
     }
 
     /* ================================================================== */
@@ -308,58 +308,111 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
     /* === 5. RESPONSIVIDAD GENERAL Y ALINEACIÓN DE TABLAS === */
     /* ================================================================== */
     /* Mejoras de responsividad para tablas */
-    [data-testid="stTable"], [data-testid="stDataFrame"] {
+    [data-testid="stDataFrame"] {
         width: 100% !important;
         overflow-x: auto !important;
         display: block !important;
+        border: 2px solid #0d47a1 !important; /* Borde general más pronunciado */
+        border-radius: 10px !important; /* Bordes más redondeados */
+        box-shadow: 0 6px 18px rgba(0,0,0,0.15) !important; /* Sombra más visible */
+        margin-bottom: 2rem !important;
     }
     
-    /* Asegurar que las tablas se ajusten al contenedor */
-    .stTable, .stDataFrame {
-        width: 100% !important;
-        max-width: 100% !important;
+    /* Estilo para las celdas de la tabla */
+    [data-testid="stDataFrame"] table th,
+    [data-testid="stDataFrame"] table td {
+        border: 1px solid #e0e0e0 !important; /* Bordes para celdas */
+        padding: 12px 18px !important; /* Relleno aumentado */
+        text-align: center !important; /* Alineación de texto centrada */
+    }
+
+    /* Estilo para los encabezados de la tabla */
+    [data-testid="stDataFrame"] table th {
+        background-color: #0d47a1 !important; /* Fondo azul marino */
+        color: white !important; /* Texto blanco */
+        font-weight: 700 !important; /* Texto más negrita */
+        text-transform: uppercase !important; /* Texto en mayúsculas */
+        text-align: center !important; /* Centrar texto del encabezado */
+    }
+
+    /* Rayado de cebra para filas */
+    [data-testid="stDataFrame"] table tbody tr:nth-child(even) {
+        background-color: #f8f9fa !important; /* Color para filas pares */
+    }
+
+    [data-testid="stDataFrame"] table tbody tr:hover {
+        background-color: #e9ecef !important; /* Resaltar fila al pasar el ratón */
+        cursor: pointer !important;
     }
     
     /* Ajustar el tamaño de texto en tablas para dispositivos pequeños */
     @media (max-width: 768px) {
-        .stTable table, .stDataFrame table {
+        [data-testid="stDataFrame"] table {
             font-size: 0.9rem !important;
         }
-        .stTable th, .stDataFrame th,
-        .stTable td, .stDataFrame td {
-            padding: 0.4rem !important;
+        [data-testid="stDataFrame"] th,
+        [data-testid="stDataFrame"] td {
+            padding: 0.6rem !important;
         }
     }
     
     /* Alineación vertical de contenido en tablas */
-    div[data-testid="stTable"] table {
+    [data-testid="stDataFrame"] table {
         width: 100% !important;
     }
     
-    div[data-testid="stTable"] th, div[data-testid="stTable"] td {
+    [data-testid="stDataFrame"] th, [data-testid="stDataFrame"] td {
         vertical-align: middle !important;
-        padding: 8px 12px !important;
-        text-align: center !important;
-    }
-    
-    /* Estilo para los botones de acción en tablas */
-    div[data-testid="stTable"] button {
-        margin: 0 auto !important;
-        display: block !important;
     }
     
     /* Centrar contenido de los encabezados de tabla */
-    .stMarkdownContainer {
+    [data-testid="stDataFrame"] .stMarkdownContainer {
         text-align: center !important;
     }
     
-    .stVerticalBlock div[data-testid="stMarkdownContainer"] {
+    [data-testid="stDataFrame"] .stVerticalBlock div[data-testid="stMarkdownContainer"] {
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
     }
 
-    /* Asegura que las imágenes no desborden su contenedor */
+    /* Estilos para st.dataframe con clase personalizada */
+    .styled-dataframe {
+        border: 1px solid #e0e0e0 !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+        overflow: hidden !important; /* Asegura que los bordes redondeados se vean bien */
+    }
+
+    .styled-dataframe table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+    .styled-dataframe th {
+        background-color: #f8f9fa !important;
+        font-weight: bold !important;
+        color: #343a40 !important;
+        padding: 10px 15px !important;
+        text-align: center !important;
+        border: 1px solid #e0e0e0 !important;
+    }
+
+    .styled-dataframe td {
+        padding: 8px 15px !important;
+        text-align: center !important;
+        border: 1px solid #e0e0e0 !important;
+    }
+
+    .styled-dataframe tbody tr:nth-child(even) {
+        background-color: #f2f2f2 !important;
+    }
+
+    .styled-dataframe tbody tr:hover {
+        background-color: #e9ecef !important;
+    }
+
+    /* Asegurar que las imágenes no desborden su contenedor */
     img {
         max-width: 100% !important;
         height: auto !important;
@@ -388,6 +441,59 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
     /* Ocultar mensaje 'press enter to submit form' de formularios Streamlit */
     [data-testid="stFormSubmitHint"] {
         display: none !important;
+    }
+
+        /* ================================================================== */
+    /* === 7. ESTILOS PARA TABLAS HTML (.tabla-estilizada) === */
+    /* ================================================================== */
+
+    /* Contenedor general de la tabla generada por .to_html() */
+    .tabla-estilizada {
+        width: 100%;                  /* Ocupa todo el ancho */
+        border-collapse: collapse;    /* Bordes limpios */
+        margin: 2rem 0;               /* Margen arriba y abajo */
+        font-size: 0.95em;            /* Tamaño de fuente legible */
+        font-family: 'Segoe UI', Tahoma, sans-serif; /* Coincide con tu body */
+        border-radius: 12px;          /* Coincide con tus .floating-card */
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08); /* Coincide con tus expanders */
+        overflow: hidden;             /* Importante para que el border-radius se vea */
+        border: 1px solid #e5e7eb;    /* Borde sutil */
+    }
+
+    /* Encabezados de la tabla (th) */
+    .tabla-estilizada thead tr {
+        background-color: #0d47a1;    /* Coincide con tu .main-header */
+        color: #ffffff;               /* Texto blanco */
+        text-align: center;           /* Alineación centrada (como en tu stDataFrame) */
+        font-weight: 600;
+    }
+
+    /* Celdas del encabezado (th) y celdas de datos (td) */
+    .tabla-estilizada th,
+    .tabla-estilizada td {
+        padding: 12px 15px;           /* Relleno cómodo */
+        text-align: center;           /* Alineación centrada */
+    }
+
+    /* Celdas del cuerpo (tbody) */
+    .tabla-estilizada tbody tr {
+        border-bottom: 1px solid #e5e7eb; /* Línea divisoria entre filas */
+    }
+
+    /* Estilo "Zebra" - filas pares */
+    .tabla-estilizada tbody tr:nth-of-type(even) {
+        background-color: #f8f9fa;    /* Gris muy claro */
+    }
+
+    /* Última fila con un borde más grueso */
+    .tabla-estilizada tbody tr:last-of-type {
+        border-bottom: 2px solid #0d47a1; /* Borde final que coincide con el header */
+    }
+
+    /* Efecto al pasar el mouse (hover) */
+    .tabla-estilizada tbody tr:hover {
+        background-color: #e9ecef;    /* Coincide con tu hover de stDataFrame */
+        cursor: default;
     }
     </style>
     """, unsafe_allow_html=True)

@@ -6,6 +6,7 @@ import bcrypt
 
 from utils.css import load_css
 
+load_css()
 st.markdown("""<script>document.querySelector('html').setAttribute('lang', 'es');</script>""", unsafe_allow_html=True)
 
 # --- LÓGICA DE CONEXIÓN ROBUSTA ---
@@ -161,6 +162,7 @@ else:
         st.page_link("pages/administracion.py", label="Administración", icon="👥")
         st.page_link("pages/recibos.py", label="Recibos de Pago", icon="🧾")
         st.page_link("pages/Historial.py", label="Historial de Grupos", icon="📚")
+        st.page_link("pages/metricas.py", label="Métricas Históricas", icon="📈")
         
         st.markdown("---")
         
@@ -171,10 +173,11 @@ else:
             st.rerun()
             
     # --- CONTENIDO DEL DASHBOARD (MÉTRICAS MEJORADAS) ---
-    st.markdown("""
+    st.markdown(f"""
     <div class="main-header">
         <h1>Dashboard Principal 🎓</h1>
         <p>Vista general del sistema de gestión</p>
+        <p style="text-align: center; font-size: 1.2rem; color: orange;">Mes Actual: {datetime.date.today().strftime('%B %Y')}</p>
     </div>
     """, unsafe_allow_html=True)
     st.markdown("---")
