@@ -3,8 +3,13 @@ import psycopg2
 import pandas as pd
 import datetime
 import json
+import unicodedata
 # Asumiendo que tienes utils.css
 from utils.css import load_css
+
+def remove_accents(input_str):
+    nfkd_form = unicodedata.normalize('NFKD', input_str)
+    return ''.join([c for c in nfkd_form if not unicodedata.combining(c)])
 
 # --- CONFIGURACIÓN INICIAL Y CSS ---
 # st.set_page_config debe ser lo primero y solo una vez
@@ -94,8 +99,8 @@ def display_data_table(df, col_widths, headers, custom_renderers):
                     renderer(row, idx)
 
 # --- HANDLERS Y FUNCIONES DE MODAL ---
-def handle_status_change(alumno_id):
-    nuevo_status = st.session_state[f"status_{alumno_id}"]
+def handle_status_change(alumno_id, idx):
+    nuevo_status = st.session_state[f"status_{alumno_id}_{idx}"]
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -112,8 +117,8 @@ def handle_status_change(alumno_id):
         st.error(f"Error al actualizar status: {e}")
         conn.rollback()
 
-def handle_certificado_change(alumno_id):
-    nuevo_certificado = st.session_state[f"certificado_{alumno_id}"]
+def handle_certificado_change(alumno_id, idx):
+    nuevo_certificado = st.session_state[f"certificado_{alumno_id}_{idx}"]
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -241,23 +246,7 @@ def cargar_datos_alumnos(grupo_id_seleccionado, status_filter):
 tab_alumnos, tab_grupos, tab_profesores = st.tabs([" Alumnos", " Grupos", " Profesores"])
 conn = get_connection()
 
-# --- TEMPORAL: VERIFICACIÓN DE CONTEO DE ALUMNOS ACTIVOS EN DB ---
-try:
-    conn = get_connection()
-    query_check_active = """
-        SELECT COUNT(a.alumno_id)
-        FROM Alumnos a
-        LEFT JOIN (
-            SELECT i.alumno_id, ROW_NUMBER() OVER(PARTITION BY i.alumno_id ORDER BY i.inscripcion_id DESC) as rn
-            FROM Inscripciones i
-        ) i ON a.alumno_id = i.alumno_id AND i.rn = 1
-        WHERE a.status_alumno = 'Activo';
-    """
-    df_check_active = pd.read_sql(query_check_active, conn)
-    st.sidebar.write(f"DEBUG DB Active Count: {df_check_active.iloc[0,0]}")
-except Exception as e:
-    st.sidebar.error(f"DEBUG DB Error: {e}")
-# --- FIN TEMPORAL ---
+
 
 # --- PESTAÑA DE ALUMNOS ---
     # --- PESTAÑA DE ALUMNOS ---
@@ -376,11 +365,11 @@ with tab_alumnos:
 
 
         if search_term and search_term.strip():
-            search_term_clean = search_term.strip()
+            search_term_clean = remove_accents(search_term.strip())
             df_alumnos_filtrado = df_alumnos_raw[
-                df_alumnos_raw["nombre_completo"].str.contains(search_term_clean, case=False, na=False) |
-                df_alumnos_raw["matricula"].str.contains(search_term_clean, case=False, na=False) |
-                df_alumnos_raw["correo"].str.contains(search_term_clean, case=False, na=False)
+                df_alumnos_raw["nombre_completo"].apply(remove_accents).str.contains(search_term_clean, case=False, na=False) |
+                df_alumnos_raw["matricula"].apply(remove_accents).str.contains(search_term_clean, case=False, na=False) |
+                df_alumnos_raw["correo"].apply(remove_accents).str.contains(search_term_clean, case=False, na=False)
             ]
         else:
             df_alumnos_filtrado = df_alumnos_raw.copy()
@@ -410,7 +399,7 @@ with tab_alumnos:
                         index=["Activo", "Baja", "Restringido", "Finalizado"].index(row['status_alumno']), 
                         key=f"status_{row['alumno_id']}_{idx}",  # CORREGIDO: Reintroducido _{idx} para clave única
                         on_change=handle_status_change, 
-                        args=(row['alumno_id'],), 
+                        args=(row['alumno_id'], idx,), 
                         label_visibility="collapsed"
                     ),
                         "Certificado": lambda row, idx: st.selectbox(
@@ -419,7 +408,7 @@ with tab_alumnos:
                             index=["Pendiente", "Certificado"].index(row['certificado']), 
                             key=f"certificado_{row['alumno_id']}_{idx}", # CORREGIDO: Reintroducido _{idx} para clave única
                             on_change=handle_certificado_change, 
-                            args=(row['alumno_id'],), 
+                            args=(row['alumno_id'], idx), 
                             label_visibility="collapsed"
                         ),
                         # ----- FIN DE LA CORRECCIÓN DE KEYERROR -----
