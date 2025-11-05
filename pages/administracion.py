@@ -179,7 +179,7 @@ def cargar_datos_alumnos(grupo_id_seleccionado, status_filter):
         SELECT a.*, g.nombre_grupo
         FROM Alumnos a
         LEFT JOIN (
-            -- Subconsulta para obtener solo la inscripción MÁS RECIENTE por alumno
+            -- Subconsulta para obtener solo la inscripción MÁS RECENTE por alumno
             SELECT 
                 i.alumno_id, 
                 i.grupo_id,
@@ -195,15 +195,14 @@ def cargar_datos_alumnos(grupo_id_seleccionado, status_filter):
         where_clauses.append("g.grupo_id = %s")
         params.append(grupo_id_seleccionado)
     
-    if status_filter == "Todos":
-        where_clauses.append("a.status_alumno IN ('Activo', 'Restringido', 'Baja')")
-    elif status_filter == "Activo":
-        where_clauses.append("a.status_alumno = 'Activo'")
-    elif status_filter in ("Restringido", "Baja"):
-        where_clauses.append("a.status_alumno = %s")
-        params.append(status_filter)
-    else:
-        where_clauses.append("a.status_alumno != 'Finalizado'")
+    if status_filter != "Todos":
+        if status_filter == "Activo":
+            where_clauses.append("a.status_alumno = 'Activo'")
+        elif status_filter in ("Restringido", "Baja"):
+            where_clauses.append("a.status_alumno = %s")
+            params.append(status_filter)
+        else:
+            where_clauses.append("a.status_alumno != 'Finalizado'")
 
     if where_clauses:
         query_alumnos += " WHERE " + " AND ".join(where_clauses)
@@ -242,7 +241,26 @@ def cargar_datos_alumnos(grupo_id_seleccionado, status_filter):
 tab_alumnos, tab_grupos, tab_profesores = st.tabs([" Alumnos", " Grupos", " Profesores"])
 conn = get_connection()
 
+# --- TEMPORAL: VERIFICACIÓN DE CONTEO DE ALUMNOS ACTIVOS EN DB ---
+try:
+    conn = get_connection()
+    query_check_active = """
+        SELECT COUNT(a.alumno_id)
+        FROM Alumnos a
+        LEFT JOIN (
+            SELECT i.alumno_id, ROW_NUMBER() OVER(PARTITION BY i.alumno_id ORDER BY i.inscripcion_id DESC) as rn
+            FROM Inscripciones i
+        ) i ON a.alumno_id = i.alumno_id AND i.rn = 1
+        WHERE a.status_alumno = 'Activo';
+    """
+    df_check_active = pd.read_sql(query_check_active, conn)
+    st.sidebar.write(f"DEBUG DB Active Count: {df_check_active.iloc[0,0]}")
+except Exception as e:
+    st.sidebar.error(f"DEBUG DB Error: {e}")
+# --- FIN TEMPORAL ---
+
 # --- PESTAÑA DE ALUMNOS ---
+    # --- PESTAÑA DE ALUMNOS ---
 with tab_alumnos:
     st.header("Gestionar Alumnos")
 
@@ -359,48 +377,47 @@ with tab_alumnos:
 
         if search_term and search_term.strip():
             search_term_clean = search_term.strip()
-            if not df_alumnos_raw.empty: # Añadir esta comprobación
-                df_alumnos_raw = df_alumnos_raw[
-                    df_alumnos_raw["nombre_completo"].str.contains(search_term_clean, case=False, na=False) |
-                    df_alumnos_raw["matricula"].str.contains(search_term_clean, case=False, na=False) |
-                    df_alumnos_raw["correo"].str.contains(search_term_clean, case=False, na=False)
-                ]
-        
-        if df_alumnos_raw.empty:
+            df_alumnos_filtrado = df_alumnos_raw[
+                df_alumnos_raw["nombre_completo"].str.contains(search_term_clean, case=False, na=False) |
+                df_alumnos_raw["matricula"].str.contains(search_term_clean, case=False, na=False) |
+                df_alumnos_raw["correo"].str.contains(search_term_clean, case=False, na=False)
+            ]
+        else:
+            df_alumnos_filtrado = df_alumnos_raw.copy()
+
+        # (CORREGIDO): Función para renderizar el botón de editar (Amarillo)
+        def render_acciones_alumno(row, idx):
+            st.markdown('<div class="btn-warning">', unsafe_allow_html=True)
+            st.button("✏️ Editar", key=f"edit_alumno_{row['alumno_id']}_{idx}", on_click=open_modal, args=("edit_alumno", row['alumno_id']), use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        if df_alumnos_filtrado.empty:
             st.info("No se encontraron alumnos con los filtros seleccionados.")
         else:
-            
-            # (CORREGIDO): Función para renderizar el botón de editar (Amarillo)
-            def render_acciones_alumno(row, idx):
-                st.markdown('<div class="btn-warning">', unsafe_allow_html=True)
-                st.button("✏️ Editar", key=f"edit_alumno_{row['alumno_id']}_{idx}", on_click=open_modal, args=("edit_alumno", row['alumno_id']), use_container_width=True)
-                st.markdown('</div>', unsafe_allow_html=True)
-
-            grupos_en_data = df_alumnos_raw['nombre_grupo'].fillna("Alumnos sin grupo").unique()
+            grupos_en_data = df_alumnos_filtrado['nombre_grupo'].fillna("Alumnos sin grupo").unique()
             for grupo in grupos_en_data:
-                if not df_alumnos_raw.empty: # Añadir esta comprobación
-                    df_grupo_actual = df_alumnos_raw[df_alumnos_raw['nombre_grupo'].fillna("Alumnos sin grupo") == grupo]
-                    st.markdown(f"<h4 style='text-align: left; color: #3498DB; margin-top: 20px;'>Grupo: {grupo} <span style='color: orange;'>({len(df_grupo_actual)} alumnos)</span></h4>", unsafe_allow_html=True)
-                    renderers = {
-                        "Acciones": render_acciones_alumno, # <-- Botón Amarillo
-                        "Nombre": lambda row, idx: st.write(row['nombre_completo']),
-                        "Grupo": lambda row, idx: st.write(row['nombre_grupo']),
-                        
-                        # ----- INICIO DE LA CORRECCIÓN DE KEYERROR -----
-                        "Status": lambda row, idx: st.selectbox(
-                            "Status", 
-                            ["Activo", "Baja", "Restringido", "Finalizado"], 
-                            index=["Activo", "Baja", "Restringido", "Finalizado"].index(row['status_alumno']), 
-                            key=f"status_{row['alumno_id']}",  # CORREGIDO: Se quitó _{idx}
-                            on_change=handle_status_change, 
-                            args=(row['alumno_id'],), 
-                            label_visibility="collapsed"
-                        ),
+                df_grupo_actual = df_alumnos_filtrado[df_alumnos_filtrado['nombre_grupo'].fillna("Alumnos sin grupo") == grupo]
+                st.markdown(f"<h4 style='text-align: left; color: #3498DB; margin-top: 20px;'>Grupo: {grupo} <span style='color: orange;'>({len(df_grupo_actual)} alumnos)</span></h4>", unsafe_allow_html=True)
+                renderers = {
+                    "Acciones": render_acciones_alumno, # <-- Botón Amarillo
+                    "Nombre": lambda row, idx: st.write(row['nombre_completo']),
+                    "Grupo": lambda row, idx: st.write(row['nombre_grupo']),
+                    
+                    # ----- INICIO DE LA CORRECCIÓN DE KEYERROR -----
+                    "Status": lambda row, idx: st.selectbox(
+                        "Status", 
+                        ["Activo", "Baja", "Restringido", "Finalizado"], 
+                        index=["Activo", "Baja", "Restringido", "Finalizado"].index(row['status_alumno']), 
+                        key=f"status_{row['alumno_id']}_{idx}",  # CORREGIDO: Reintroducido _{idx} para clave única
+                        on_change=handle_status_change, 
+                        args=(row['alumno_id'],), 
+                        label_visibility="collapsed"
+                    ),
                         "Certificado": lambda row, idx: st.selectbox(
                             "Certificado", 
                             ["Pendiente", "Certificado"], 
                             index=["Pendiente", "Certificado"].index(row['certificado']), 
-                            key=f"certificado_{row['alumno_id']}", # CORREGIDO: Se quitó _{idx}
+                            key=f"certificado_{row['alumno_id']}_{idx}", # CORREGIDO: Reintroducido _{idx} para clave única
                             on_change=handle_certificado_change, 
                             args=(row['alumno_id'],), 
                             label_visibility="collapsed"
@@ -416,14 +433,14 @@ with tab_alumnos:
                         
                         "Fecha Nacimiento": lambda row, idx: st.write(row['fecha_nacimiento'].strftime('%d/%m/%Y') if pd.notna(row['fecha_nacimiento']) else "N/A")
                     }
-                    st.markdown('<div class="table-container">', unsafe_allow_html=True)
-                    display_data_table(
-                        df=df_grupo_actual,
-                        col_widths=[3, 4, 2, 4, 4.5, 3, 4, 3, 3.5, 3],
-                        headers=["Acciones", "Nombre", "Grupo", "Status", "Certificado", "Matrícula", "Correo", "Teléfono", "Estado de Residencia", "Fecha Nacimiento"],
-                        custom_renderers=renderers
-                    )
-                    st.markdown('</div>', unsafe_allow_html=True)
+                st.markdown('<div class="table-container">', unsafe_allow_html=True)
+                display_data_table(
+                    df=df_grupo_actual,
+                    col_widths=[3, 4, 2, 4, 4.5, 3, 4, 3, 3.5, 3],
+                    headers=["Acciones", "Nombre", "Grupo", "Status", "Certificado", "Matrícula", "Correo", "Teléfono", "Estado de Residencia", "Fecha Nacimiento"],
+                    custom_renderers=renderers
+                )
+                st.markdown('</div>', unsafe_allow_html=True)
     except Exception as e:
         st.error(f"Error al cargar la lista de alumnos: {e}")
 
