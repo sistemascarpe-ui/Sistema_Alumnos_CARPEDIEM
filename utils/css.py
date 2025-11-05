@@ -490,7 +490,7 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
         border-bottom: 2px solid #0d47a1; /* Borde final que coincide con el header */
     }
 
-    /* Efecto al pasar el mouse (hover) */
+    /* Efecto al pasar el mouse (hover estilos de stDataFrame) */
     .tabla-estilizada tbody tr:hover {
         background-color: #e9ecef;    /* Coincide con tu hover de stDataFrame */
         cursor: default;
