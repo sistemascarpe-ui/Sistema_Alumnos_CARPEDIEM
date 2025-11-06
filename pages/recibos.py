@@ -440,7 +440,7 @@ with st.container(border=True):
         st.markdown("""<div class="table-container">""", unsafe_allow_html=True)
 
         # --- 💡 CAMBIO 2: Ancho de columna 'Acciones' ajustado de 3 a 1.5 ---
-        col_widths = [4, 1.5, 3.5, 2, 2, 1.5, 3, 2] 
+        col_widths = [3.5, 1.5, 3.5, 2, 2, 1.5, 3, 2] 
         headers = ["Acciones", "Folio", "Nombre", "Método de Pago", "Fecha", "Monto", "Concepto", "Status"]
 
         with st.container(border=True):
@@ -470,7 +470,7 @@ with st.container(border=True):
                         
                         with col_btn_2:
                             # --- 💡 CAMBIO 4: Se llama a la nueva función modal ---
-                            if st.button("✏️ Editar", key=f"edit_{row['folio']}", use_container_width=True, help="Editar Pago"):
+                            if st.button("✏️ Editar Recibo", key=f"edit_{row['folio']}", use_container_width=True, help="Editar Pago"):
                                 # Llamamos a nuestra nueva función de diálogo
                                 modal_editar_pago(row.to_dict(), conn)
                     # --- 💡 FIN DE CAMBIOS DE BOTONES ---

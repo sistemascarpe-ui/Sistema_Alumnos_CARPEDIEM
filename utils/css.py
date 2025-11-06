@@ -14,6 +14,7 @@ def load_css():
 
     body {
         background-color: #f0f4f8;
+        text-align: center !important;
     }
     .stApp {
         background-color: #f0f4f8 !important;
@@ -24,8 +25,11 @@ def load_css():
         margin: 0 auto !important;
     }
     /* Añadir alineación centrada para encabezados h2, h3, h4 globales */
-    h2, h3, h4 {
+    h2, h3, h4, table, [data-testid="stTable"], [data-testid="stDataFrame"] {
         text-align: center !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        display: block !important;
     }
     [data-testid="stBlock"] > div:first-child {
         background-color: transparent !important;
@@ -320,14 +324,7 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
         border-radius: 10px !important; /* Bordes más redondeados */
         box-shadow: 0 6px 18px rgba(0,0,0,0.15) !important; /* Sombra más visible */
         margin-bottom: 2rem !important;
-    }
-    /* Añadir alineación centrada para divs de tablas (stVerticalBlock y stHorizontalBlock) */
-    .stVerticalBlock .stMarkdownContainer,
-    .stHorizontalBlock .stMarkdownContainer {
-        text-align: center !important;
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
+        text-align: center !important; /* Centrar el contenido general del DataFrame */
     }
     
     /* Estilo para las celdas de la tabla */
@@ -336,6 +333,7 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
         border: 1px solid #e0e0e0 !important; /* Bordes para celdas */
         padding: 12px 18px !important; /* Relleno aumentado */
         text-align: center !important; /* Alineación de texto centrada */
+        vertical-align: middle !important; /* Alineación vertical centrada */
     }
 
     /* Estilo para los encabezados de la tabla */
@@ -345,6 +343,22 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
         font-weight: 700 !important; /* Texto más negrita */
         text-transform: uppercase !important; /* Texto en mayúsculas */
         text-align: center !important; /* Centrar texto del encabezado */
+    }
+
+    /* Centrar todos los elementos dentro de las celdas de la tabla */
+    [data-testid="stDataFrame"] table th > div,
+    [data-testid="stDataFrame"] table td > div,
+    [data-testid="stDataFrame"] table th .stMarkdownContainer,
+    [data-testid="stDataFrame"] table td .stMarkdownContainer,
+    .tabla-estilizada th > div,
+    .tabla-estilizada td > div,
+    .tabla-estilizada th .stMarkdownContainer,
+    .tabla-estilizada td .stMarkdownContainer {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 100% !important;
+        height: 100% !important;
     }
 
     /* Rayado de cebra para filas */
@@ -373,19 +387,23 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
         width: 100% !important;
     }
     
-    [data-testid="stDataFrame"] th, [data-testid="stDataFrame"] td {
-        vertical-align: middle !important;
-    }
-    
     /* Centrar contenido de los encabezados de tabla */
-    [data-testid="stDataFrame"] .stMarkdownContainer {
-        text-align: center !important;
-    }
-    
+    [data-testid="stDataFrame"] .stMarkdownContainer,
     [data-testid="stDataFrame"] .stVerticalBlock div[data-testid="stMarkdownContainer"] {
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
+        text-align: center !important; /* Asegurar centrado de texto */
+    }
+
+    /* Centrar contenido de divs dentro de celdas de tabla */
+    [data-testid="stDataFrame"] td > div,
+    .tabla-estilizada td > div {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 100% !important;
+        height: 100% !important;
     }
 
     /* Estilos para st.dataframe con clase personalizada */
@@ -485,6 +503,7 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
     .tabla-estilizada td {
         padding: 12px 15px;           /* Relleno cómodo */
         text-align: center;           /* Alineación centrada */
+        vertical-align: middle;       /* 💡 AÑADIDO: Centrado vertical */
     }
 
     /* Celdas del cuerpo (tbody) */
@@ -507,5 +526,47 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
         background-color: #e9ecef;    /* Coincide con tu hover de stDataFrame */
         cursor: default;
     }
+    
+    
+    
+    /* --- 💡💡💡 INICIO DE LA CORRECCIÓN GLOBAL 💡💡💡 --- */
+    
+    /* ================================================================== */
+    /* === 8. CENTRADO GLOBAL PARA TABLAS (st.container .table-container) === */
+    /* ================================================================== */
+    
+    /* Apunta a CADA CELDA (columna) que es hija directa de 
+     un stHorizontalBlock (la fila), PERO SÓLO dentro de .table-container
+    */
+    .table-container [data-testid="stContainer"] [data-testid="stHorizontalBlock"] > div {
+        /* Centra verticalmente el contenido (botones, texto) */
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        
+        /* Centra horizontalmente el contenido (botones, texto) */
+        align-items: center !important; 
+        text-align: center !important; 
+    }
+
+    /* Asegura que el texto de st.markdown también se centre 
+     (aplicado a los encabezados) 
+    */
+    .table-container [data-testid="stContainer"] [data-testid="stHorizontalBlock"] > div .stMarkdownContainer {
+        text-align: center !important;
+        width: 100% !important; /* Ocupa el ancho de la celda */
+    }
+    
+    /* Asegura que el texto de st.write también se centre 
+     (aplicado a las celdas de datos) 
+    */
+    .table-container [data-testid="stContainer"] [data-testid="stHorizontalBlock"] > div > div[data-testid="stMarkdownContainer"] p {
+         text-align: center !important;
+         width: 100% !important;
+    }
+    
+    /* --- 💡💡💡 FIN DE LA CORRECCIÓN GLOBAL 💡💡💡 --- */
+    
+    
     </style>
     """, unsafe_allow_html=True)
