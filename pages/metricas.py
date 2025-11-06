@@ -100,58 +100,63 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-st.subheader("Ingresos Mensuales")
+# --- TABS PRINCIPALES ---
+tab_ingresos, tab_alumnos = st.tabs([" Ingresos Mensuales", " Alumnos Mensuales"])
 
-@st.cache_data(ttl=600)
-def get_ingresos_mensuales():
-    conn = get_connection()
-    # --- 💡 CAMBIO 1: Alias de SQL actualizados ---
-    query = """
-        SELECT 
-            TO_CHAR(fecha_pago, 'YYYY-MM') AS "Fecha",
-            SUM(monto) AS "Ingresos"
-        FROM Pagos
-        GROUP BY "Fecha"
-        ORDER BY "Fecha";
-    """
-    df_ingresos = pd.read_sql(query, conn)
-    return df_ingresos
+with tab_ingresos:
+    st.subheader("Ingresos Mensuales")
 
-df_ingresos_mensuales = get_ingresos_mensuales()
+    @st.cache_data(ttl=600)
+    def get_ingresos_mensuales():
+        conn = get_connection()
+        # --- 💡 CAMBIO 1: Alias de SQL actualizados ---
+        query = """
+            SELECT 
+                TO_CHAR(fecha_pago, 'YYYY-MM') AS "Fecha",
+                SUM(monto) AS "Ingresos"
+            FROM Pagos
+            GROUP BY "Fecha"
+            ORDER BY "Fecha";
+        """
+        df_ingresos = pd.read_sql(query, conn)
+        return df_ingresos
 
-# Convertir el DataFrame a HTML con una clase CSS y sin el índice
-df_html_ingresos = df_ingresos_mensuales.to_html(
-    index=False, 
-    classes="tabla-estilizada",
-    justify="left"               
-)
-st.markdown(df_html_ingresos, unsafe_allow_html=True)
+    df_ingresos_mensuales = get_ingresos_mensuales()
+
+    # Convertir el DataFrame a HTML con una clase CSS y sin el índice
+    df_html_ingresos = df_ingresos_mensuales.to_html(
+        index=False, 
+        classes="tabla-estilizada",
+        justify="left"               
+    )
+    st.markdown(df_html_ingresos, unsafe_allow_html=True)
 
 
-st.subheader("Alumnos Registrados Mensualmente")
+with tab_alumnos:
+    st.subheader("Alumnos Registrados Mensualmente")
 
-@st.cache_data(ttl=600)
-def get_alumnos_registrados_mensuales():
-    conn = get_connection()
-    # --- 💡 CAMBIO 2: Alias de SQL actualizados ---
-    query = """
-        SELECT 
-            TO_CHAR(g.fecha_inicio, 'YYYY-MM') AS "Fecha",
-            COUNT(i.alumno_id) AS "Alumnos Registrados"
-        FROM Inscripciones i
-        JOIN Grupos g ON i.grupo_id = g.grupo_id
-        GROUP BY "Fecha"
-        ORDER BY "Fecha";
-    """
-    df_alumnos = pd.read_sql(query, conn)
-    return df_alumnos
+    @st.cache_data(ttl=600)
+    def get_alumnos_registrados_mensuales():
+        conn = get_connection()
+        # --- 💡 CAMBIO 2: Alias de SQL actualizados ---
+        query = """
+            SELECT 
+                TO_CHAR(g.fecha_inicio, 'YYYY-MM') AS "Fecha",
+                COUNT(i.alumno_id) AS "Alumnos Registrados"
+            FROM Inscripciones i
+            JOIN Grupos g ON i.grupo_id = g.grupo_id
+            GROUP BY "Fecha"
+            ORDER BY "Fecha";
+        """
+        df_alumnos = pd.read_sql(query, conn)
+        return df_alumnos
 
-df_alumnos_registrados_mensuales = get_alumnos_registrados_mensuales()
+    df_alumnos_registrados_mensuales = get_alumnos_registrados_mensuales()
 
-# Reutilizamos la misma clase CSS para la segunda tabla
-df_html_alumnos = df_alumnos_registrados_mensuales.to_html(
-    index=False, 
-    classes="tabla-estilizada",
-    justify="left"
-)
-st.markdown(df_html_alumnos, unsafe_allow_html=True)
+    # Reutilizamos la misma clase CSS para la segunda tabla
+    df_html_alumnos = df_alumnos_registrados_mensuales.to_html(
+        index=False, 
+        classes="tabla-estilizada",
+        justify="left"
+    )
+    st.markdown(df_html_alumnos, unsafe_allow_html=True)
