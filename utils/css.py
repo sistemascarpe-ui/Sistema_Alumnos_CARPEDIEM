@@ -25,11 +25,28 @@ def load_css():
         margin: 0 auto !important;
     }
     /* Añadir alineación centrada para encabezados h2, h3, h4 globales */
-    h2, h3, h4, table, [data-testid="stTable"], [data-testid="stDataFrame"] {
+    h1, h2, h3, h4, h5, h6 {
         text-align: center !important;
+    }
+    table, [data-testid="stTable"], [data-testid="stDataFrame"] {
         margin-left: auto !important;
         margin-right: auto !important;
         display: block !important;
+    }
+
+    /* Excluir formularios y sus elementos del centrado global */
+    div[data-testid="stForm"], div[data-testid="stForm"] * {
+        text-align: left !important;
+    }
+
+    /* Alinear a la izquierda todos los elementos dentro de los select box */
+    div[data-baseweb="select"] div, div[data-baseweb="select"] input {
+        text-align: left !important;
+    }
+    div[data-testid="stForm"] div[data-testid="stTextInput"],
+    div[data-testid="stForm"] div[data-testid="stDateInput"],
+    div[data-testid="stForm"] div[data-testid="stSelectbox"] {
+        text-align: left !important;
     }
     [data-testid="stBlock"] > div:first-child {
         background-color: transparent !important;
@@ -94,7 +111,19 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
         color: #0d47a1 !important; /* ¡¡TEXTO AZUL MARINO!! */
         border: none !important; /* Eliminar todos los bordes */
     }
-    
+
+    /* Reduce width of Grupo and Alumno selectbox containers to 50% (responsive) */
+    div[aria-label*="Filtrar por Grupo"],
+    div[aria-label*="Selecciona un Alumno"] {
+        width: 50% !important;
+        height: auto !important;
+        max-width: none !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        margin: inherit !important;
+        padding: inherit !important;
+    }
+
     /* --- (Resto de Sección 2) --- */
     .main-header {
         background-color: #0d47a1 !important;
@@ -266,7 +295,10 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
         min-height: 40px !important;
     }
     div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
-        width: 100% !important;
+        /* Reducir el ancho de los select box a la mitad */
+        div[data-baseweb="select"] > div:first-child {
+            width: 50% !important;
+        }
         height: 40px !important;
         min-height: 40px !important;
         display: flex !important;

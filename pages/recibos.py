@@ -297,11 +297,13 @@ with st.expander("Registrar Nuevo Pago y Generar Recibo", expanded=False):
     for index, row in df_grupos.iterrows():
         opciones_grupos[row['grupo_id']] = row['nombre_grupo']
 
-    grupo_filtrado_id = st.selectbox(
-        "Filtrar por Grupo",
-        options=list(opciones_grupos.keys()),
-        format_func=lambda x: opciones_grupos[x]
-    )
+    col_grupo, _ = st.columns([0.5, 0.5])
+    with col_grupo:
+        grupo_filtrado_id = st.selectbox(
+            "Filtrar por Grupo",
+            options=list(opciones_grupos.keys()),
+            format_func=lambda x: opciones_grupos[x]
+        )
     
     st.write("")
     if grupo_filtrado_id == 0:
@@ -313,13 +315,15 @@ with st.expander("Registrar Nuevo Pago y Generar Recibo", expanded=False):
     if df_alumnos_filtrados.empty:
         st.warning("No hay alumnos 'Activos' que coincidan con el filtro seleccionado.")
     else:
-        alumno_id = st.selectbox(
-            "Selecciona un Alumno",
-            options=df_alumnos_filtrados['alumno_id'],
-            format_func=lambda x: df_alumnos_filtrados[df_alumnos_filtrados['alumno_id'] == x]['nombre_completo'].values[0],
-            index=None,
-            placeholder="Selecciona un alumno..."
-        )
+        col_alumno, _ = st.columns([0.5, 0.5])
+        with col_alumno:
+            alumno_id = st.selectbox(
+                "Selecciona un Alumno",
+                options=df_alumnos_filtrados['alumno_id'],
+                format_func=lambda x: df_alumnos_filtrados[df_alumnos_filtrados['alumno_id'] == x]['nombre_completo'].values[0],
+                index=None,
+                placeholder="Selecciona un alumno..."
+            )
         
         conceptos_disponibles = []
         if alumno_id:
