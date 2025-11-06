@@ -1,3 +1,11 @@
+import unicodedata
+
+def remove_accents(input_str):
+    if isinstance(input_str, str):
+        nfkd_form = unicodedata.normalize('NFKD', input_str)
+        return ''.join([c for c in nfkd_form if not unicodedata.combining(c)])
+    return input_str
+
 import streamlit as st
 import psycopg2
 import pandas as pd
@@ -378,10 +386,10 @@ with st.container(border=True):
 
         # Aplicar el filtro si 'search_term' (el confirmado) existe
         if search_term and search_term.strip():
-            search_term_clean = search_term.strip()
+            search_term_clean = remove_accents(search_term.strip())
             df_pagos = df_pagos[
                 df_pagos['folio'].str.contains(search_term_clean, case=False) |
-                df_pagos['nombre_completo'].str.contains(search_term_clean, case=False)
+                df_pagos['nombre_completo'].apply(remove_accents).str.contains(search_term_clean, case=False)
             ]
         
         # --- NUEVA ESTRUCTURA DE TABLA (SOLUCIÓN 3) ---

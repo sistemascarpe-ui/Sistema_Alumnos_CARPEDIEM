@@ -557,7 +557,11 @@ with tab_grupos:
             # st.session_state["search_value_grupos"] = search_term_grupos # Esta línea ya no es necesaria aquí
 
             if search_term_grupos and search_term_grupos.strip():
-                df_grupos = df_grupos[df_grupos['nombre_grupo'].str.contains(search_term_grupos.strip(), case=False, na=False)]
+                search_term_grupos_normalized = remove_accents(search_term_grupos.strip())
+                df_grupos = df_grupos[
+                    df_grupos['nombre_grupo'].apply(lambda x: remove_accents(str(x))).str.contains(search_term_grupos_normalized, case=False, na=False) |
+                    df_grupos['nombre_profesor'].apply(lambda x: remove_accents(str(x))).str.contains(search_term_grupos_normalized, case=False, na=False)
+                ]
 
             # (CORREGIDO): Función de renderizado con los colores solicitados
             def render_acciones_grupo(row, idx): # Añadido idx para consistencia
@@ -653,7 +657,8 @@ with tab_profesores:
             
             
             if search_profesores and search_profesores.strip():
-                df_profesores = df_profesores[df_profesores['nombre_completo'].str.contains(search_profesores.strip(), case=False, na=False)]
+                search_profesores_normalized = remove_accents(search_profesores.strip())
+                df_profesores = df_profesores[df_profesores['nombre_completo'].apply(remove_accents).str.contains(search_profesores_normalized, case=False, na=False)]
 
             # (CORREGIDO): Función de renderizado con los colores solicitados
             def render_acciones_profesor(row, idx): # Añadido idx
