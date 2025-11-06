@@ -1,15 +1,17 @@
-import unicodedata
 import streamlit as st
-import psycopg2
 import pandas as pd
+import psycopg2
+import json
 import datetime
+from fpdf import FPDF
 import base64
 import io
-from fpdf import FPDF
+import unicodedata
 from num2words import num2words
+
 from utils.css import load_css
 
-# --- FUNCIÓN DE ACENTOS (ya la tenías, movida aquí) ---
+# --- FUNCIÓN DE ACENTOS ---
 def remove_accents(input_str):
     if isinstance(input_str, str):
         nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -426,7 +428,11 @@ if 'pdf_a_descargar' in st.session_state:
 with st.container(border=True):
     st.subheader("Historial de Pagos Registrados")
 
-    col_search_button, col_search_input = st.columns([0.1, 0.9])
+    # Initialize session state for the status filter
+    if "selected_status_filter" not in st.session_state:
+        st.session_state.selected_status_filter = "Todos"
+
+    col_search_button, col_search_input, col_status_filter = st.columns([0.1, 0.6, 0.3])
     
     with col_search_input:
         search_term_input = st.text_input(
@@ -435,6 +441,16 @@ with st.container(border=True):
             key="search_pagos_realtime", 
             value=st.session_state.get("search_value_pagos", ""), 
             label_visibility="collapsed" 
+        )
+
+    with col_status_filter:
+        selected_status = st.selectbox(
+            "Filtrar por Estado",
+            options=["Todos", "Pendiente", "Completo"],
+            key="status_filter_selectbox",
+            index=["Todos", "Pendiente", "Completo"].index(st.session_state.selected_status_filter),
+            label_visibility="collapsed",
+            on_change=lambda: setattr(st.session_state, "selected_status_filter", st.session_state.status_filter_selectbox)
         )
 
     search_term = st.session_state.get("search_value_pagos", "")
@@ -451,7 +467,7 @@ with st.container(border=True):
     try:
         conn = get_connection()
         query_pagos = """
-            SELECT p.folio, a.nombre_completo, p.metodo_pago, p.fecha_pago, 
+            SELECT p.folio, a.nombre_completo, p.metodo_pago, p.fecha_pago,
                    p.monto, p.concepto, p.status_pago
             FROM Pagos p
             JOIN Inscripciones i ON p.inscripcion_id = i.inscripcion_id
@@ -461,17 +477,22 @@ with st.container(border=True):
         df_pagos = pd.read_sql(query_pagos, conn)
         df_pagos["folio"] = df_pagos["folio"].astype(str)
 
+        # Apply search term filter
         if search_term and search_term.strip():
             search_term_clean = remove_accents(search_term.strip())
             df_pagos = df_pagos[
                 df_pagos['folio'].str.contains(search_term_clean, case=False) |
                 df_pagos['nombre_completo'].apply(remove_accents).str.contains(search_term_clean, case=False)
             ]
-        
+
+        # Apply status filter
+        if st.session_state.selected_status_filter != "Todos":
+            df_pagos = df_pagos[df_pagos['status_pago'].str.strip() == st.session_state.selected_status_filter]
+
         st.markdown("""<div class="table-container">""", unsafe_allow_html=True)
 
         # Anchos de columna (los mantuve como los tenías)
-        col_widths = [3.5, 1.5, 3.5, 2, 2, 1.5, 3, 2] 
+        col_widths = [3.8, 1.5, 3.5, 2, 2, 1.5, 2.5, 3]
         headers = ["Acciones", "Folio", "Nombre", "Método de Pago", "Fecha", "Monto", "Concepto", "Status"]
 
         with st.container(border=True):
@@ -485,7 +506,7 @@ with st.container(border=True):
             for _, row in df_pagos.iterrows():
                 with st.container(border=True):
                     cols_row = st.columns(col_widths)
-                    
+
                     # Columna de Acciones con 2 sub-columnas
                     with cols_row[0]:
                         col_btn_1, col_btn_2 = st.columns(2)
@@ -497,32 +518,32 @@ with st.container(border=True):
                                 )
                                 st.session_state.pdf_a_descargar = {"data": pdf_bytes, "file_name": f"recibo_{row['folio']}.pdf"}
                                 st.rerun()
-                        
+
                         with col_btn_2:
                             if st.button("✏️ Editar Recibo", key=f"edit_{row['folio']}", use_container_width=True, help="Editar Pago"):
                                 modal_editar_pago(row.to_dict(), conn)
 
                     # Folio
                     cols_row[1].markdown(f"""<span style='color: #1c83e1; font-weight: bold;'>{row['folio']}</span>""", unsafe_allow_html=True)
-                    
+
                     # Resto de los datos
                     cols_row[2].write(row['nombre_completo'])
                     cols_row[3].write(row['metodo_pago'])
                     cols_row[4].write(row['fecha_pago'].strftime('%d/%m/%Y'))
                     cols_row[5].write(f"${float(row['monto']):,.2f}")
                     cols_row[6].write(row['concepto'])
-                    
+
                     # --- CAMBIO 3: SELECTBOX DE STATUS ---
                     with cols_row[7]:
                         status_options = ["Pendiente", "Completo"]
                         current_status = row['status_pago'].strip()
-                        
+
                         # Manejo de seguridad por si hay un status inesperado en la BBDD
                         if current_status not in status_options:
                             status_options.append(current_status)
-                            
+
                         current_index = status_options.index(current_status)
-                        
+
                         st.selectbox(
                             "Status del Pago",
                             options=status_options,
