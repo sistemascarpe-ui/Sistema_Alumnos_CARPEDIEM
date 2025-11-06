@@ -23,6 +23,10 @@ def load_css():
         max-width: 100% !important;
         margin: 0 auto !important;
     }
+    /* Añadir alineación centrada para encabezados h2, h3, h4 globales */
+    h2, h3, h4 {
+        text-align: center !important;
+    }
     [data-testid="stBlock"] > div:first-child {
         background-color: transparent !important;
         padding: 0 !important;
@@ -316,6 +320,14 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
         border-radius: 10px !important; /* Bordes más redondeados */
         box-shadow: 0 6px 18px rgba(0,0,0,0.15) !important; /* Sombra más visible */
         margin-bottom: 2rem !important;
+    }
+    /* Añadir alineación centrada para divs de tablas (stVerticalBlock y stHorizontalBlock) */
+    .stVerticalBlock .stMarkdownContainer,
+    .stHorizontalBlock .stMarkdownContainer {
+        text-align: center !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
     }
     
     /* Estilo para las celdas de la tabla */

@@ -14,15 +14,9 @@ import base64
 import io
 from fpdf import FPDF
 from num2words import num2words
-
-# (Importante: Asumo que 'streamlit_keyup' ya NO es necesario,
-# ya que tu 'administracion.py' usa un st.button + st.text_input)
 from utils.css import load_css
 
 # --- CONFIGURACIÓN Y CSS ---
-# st.set_page_config debe ser lo primero, pero solo UNA VEZ por script.
-# La llamada en 'sistemaR.py' es la principal.
-# Aquí solo llamamos a load_css()
 load_css()
 
 # --- INICIO DEL BLOQUE "PORTERO" (Versión 2.0) ---
@@ -92,14 +86,12 @@ with st.sidebar:
 
 # --- INICIO DE LA PÁGINA DE RECIBOS ---
 
-# (st.set_page_config ya no va aquí, se maneja arriba o en la app principal)
 st.markdown("""
 <div class="main-header">
     <h1>Registro de Pagos y Recibos 🧾</h1>
     <p>Gestiona los pagos y recibos del sistema</p>
 </div>
 """, unsafe_allow_html=True)
-# (load_css() ya se llamó al inicio)
 
 # --- LÓGICA DE CONEXIÓN ROBUSTA ---
 @st.cache_resource
@@ -109,16 +101,14 @@ def init_connection():
 def get_connection():
     conn = init_connection()
     try:
-        # Hacemos una consulta rápida para probar si la conexión está "viva"
         conn.cursor().execute("SELECT 1")
     except (psycopg2.InterfaceError, psycopg2.OperationalError, psycopg2.errors.InFailedSqlTransaction):
-        # Si hay un error, hacer rollback y limpiar la caché
         if not conn.closed:
             try:
                 if conn.status == psycopg2.extensions.STATUS_IN_TRANSACTION:
                     conn.rollback()
             except Exception:
-                pass # Ignorar errores en rollback
+                pass 
         st.cache_resource.clear()
         conn = init_connection()
     return conn
@@ -137,36 +127,26 @@ def generar_recibo_pdf(folio, fecha, nombre_alumno, concepto, monto, metodo_pago
     pdf = FPDF()
     pdf.add_page()
     
-    # Título principal (AHORA VA PRIMERO)
     pdf.set_font('Arial', 'B', 16)
     pdf.cell(0, 10, 'Recibo de pago', 0, 1, 'C')
-    pdf.ln(5) # Un pequeño espacio
+    pdf.ln(5) 
 
-    # --- IMÁGENES DEL ENCABEZADO (AJUSTADAS) ---
     try:
-        # 1. Logo principal más grande (w=80) y centrado
         pdf.image('utils/logo_principal.jpg', x=65, y=pdf.get_y(), w=80)
-        pdf.ln(20) # Más espacio después del logo
-        
-        # 2. Barra de contacto más ancha y centrada
+        pdf.ln(20) 
         pdf.image('utils/info_contacto.png', x=30, y=pdf.get_y(), w=150)
-        pdf.ln(15) # Más espacio después de la barra de contacto
-
-    except Exception: # Captura cualquier error de imagen
+        pdf.ln(15) 
+    except Exception: 
         st.warning("No se encontraron las imágenes del logo/contacto.")
         pdf.set_font('Arial', 'B', 12)
         pdf.cell(0, 5, "CARPE DIEM MÉXICO", 0, 1, 'C')
         pdf.ln(20)
 
-
-    # --- DATOS DEL RECIBO CON COLORES ---
-    # Establecemos el color azul para las etiquetas
     pdf.set_text_color(70, 130, 180) 
     pdf.set_font('Arial', 'B', 12)
     
-    # Fecha y Folio
     pdf.cell(15, 10, 'Fecha:', 0, 0)
-    pdf.set_text_color(0, 0, 0) # Volvemos a negro para el dato
+    pdf.set_text_color(0, 0, 0) 
     pdf.set_font('Arial', '', 12)
     pdf.cell(0, 10, fecha.strftime('%d / %m / %Y'), 0, 1)
 
@@ -178,41 +158,36 @@ def generar_recibo_pdf(folio, fecha, nombre_alumno, concepto, monto, metodo_pago
     pdf.cell(0, 10, str(folio), 0, 1)
     pdf.ln(5)
     
-    # Datos del pago
     pdf.set_text_color(70, 130, 180)
     pdf.set_font('Arial', 'B', 12)
     pdf.cell(28, 10, 'Recibí de:', 0, 0)
     pdf.set_text_color(0, 0, 0)
-    pdf.set_font('Arial', 'B', 12) # El nombre en negrita
+    pdf.set_font('Arial', 'B', 12) 
     pdf.cell(0, 10, nombre_alumno.upper(), 0, 1)
     
     pdf.set_text_color(70, 130, 180)
     pdf.set_font('Arial', 'B', 12)
     pdf.cell(38, 10, 'La cantidad de:', 0, 0)
     pdf.set_text_color(0, 0, 0)
-    pdf.set_font('Arial', '', 12) # El monto en normal
+    pdf.set_font('Arial', '', 12) 
     pdf.cell(0, 10, f"${float(monto):,.2f} ({numero_a_letra(float(monto))})", 0, 1)
     
     pdf.set_text_color(70, 130, 180)
     pdf.set_font('Arial', 'B', 12)
     pdf.cell(42, 10, 'Por concepto de:', 0, 0)
     pdf.set_text_color(0, 0, 0)
-    pdf.set_font('Arial', '', 12) # El concepto en normal
+    pdf.set_font('Arial', '', 12) 
     pdf.cell(0, 10, concepto.upper(), 0, 1)
     
-    # --- FIRMA ---
     pdf.ln(25)
     try:
-        # Cargar firma desde Streamlit Secrets (Base64 encriptada)
         firma_base64 = st.secrets["FIRMA_BASE64"]
         firma_data = base64.b64decode(firma_base64)
         firma_stream = io.BytesIO(firma_data)
         
-        # Insertar la firma en el PDF
         pdf.image(firma_stream, x=80, y=pdf.get_y(), w=50)
         pdf.ln(15)
     except (KeyError, Exception):
-        # Si no hay firma en los secrets, solo saltar la línea
         pdf.ln(15)
 
     pdf.cell(0, 1, '_________________________________', 0, 1, 'C')
@@ -223,13 +198,100 @@ def generar_recibo_pdf(folio, fecha, nombre_alumno, concepto, monto, metodo_pago
     
     return bytes(pdf.output())
 
-# --- FORMULARIO PARA REGISTRAR PAGO ---
+# --- 💡 INICIO CAMBIO 1: NUEVA FUNCIÓN MODAL ---
+# Esta es la nueva función de modal que se llama desde el botón de la tabla.
+@st.dialog("✏️ Editar Pago")
+def modal_editar_pago(payment_data, conn):
+    """
+    Modal para editar un pago existente.
+    """
+    
+    # Definimos las listas de opciones
+    lista_conceptos = ["Inscripción", "Mensualidad 1", "Mensualidad 2", "Mensualidad 3", "Mensualidad 4", "Mensualidad 5", "Mensualidad 6"]
+    lista_metodos = ["Transferencia", "Efectivo", "Tarjeta"]
 
-# (SOLUCIÓN 1: 'expanded' cambiado a False)
+    try:
+        # --- 💡 CORRECCIÓN IMPORTANTE (EL ERROR ESTABA AQUÍ) ---
+        # .strip() elimina espacios en blanco al inicio o final
+        current_concepto = payment_data['concepto'].strip()
+        current_metodo = payment_data['metodo_pago'].strip()
+        
+        # Encontrar el índice (esto era lo que fallaba)
+        index_concepto = lista_conceptos.index(current_concepto)
+        index_metodo = lista_metodos.index(current_metodo)
+    except ValueError as e:
+        # Si el valor no está en la lista (ej. "Mensualidad 7"), mostramos un error y usamos el índice 0
+        st.error(f"Error de datos: El valor '{e.args[0].split(' ')[0]}' no es una opción válida. Revisa los datos.")
+        index_concepto = 0
+        index_metodo = 0
+
+    # El formulario del modal
+    with st.form("edit_payment_form_dialog"):
+        st.write(f"**Alumno:** {payment_data['nombre_completo']}")
+        st.write(f"**Folio:** {payment_data['folio']}")
+
+        col1_edit, col2_edit = st.columns(2)
+        with col1_edit:
+            edited_concepto = st.selectbox(
+                "Concepto del Pago",
+                options=lista_conceptos,
+                index=index_concepto # Usamos el índice seguro
+            )
+            edited_monto = st.number_input(
+                "Monto Pagado",
+                min_value=0.0,
+                step=50.0,
+                value=float(payment_data['monto'])
+            )
+        with col2_edit:
+            edited_metodo = st.selectbox(
+                "Método de Pago",
+                options=lista_metodos,
+                index=index_metodo # Usamos el índice seguro
+            )
+            edited_fecha = st.date_input(
+                "Fecha del Pago",
+                value=payment_data['fecha_pago']
+            )
+        
+        st.markdown("--- ")
+        col_buttons_edit_1, col_buttons_edit_2 = st.columns(2)
+        with col_buttons_edit_1:
+            submitted_edit = st.form_submit_button("Guardar Cambios", type="primary", use_container_width=True)
+        with col_buttons_edit_2:
+            cancel_edit = st.form_submit_button("Cancelar", type="secondary", use_container_width=True)
+
+        if submitted_edit:
+            try:
+                with conn.cursor() as cur:
+                    sql_update = """
+                        UPDATE Pagos
+                        SET monto = %s, fecha_pago = %s, concepto = %s, metodo_pago = %s
+                        WHERE folio = %s
+                    """
+                    cur.execute(sql_update, (
+                        edited_monto,
+                        edited_fecha,
+                        edited_concepto,
+                        edited_metodo,
+                        payment_data['folio']
+                    ))
+                    conn.commit()
+                st.success(f"¡Pago con folio {payment_data['folio']} actualizado correctamente!")
+                st.rerun() # Cierra el modal y refresca la tabla
+            except Exception as e:
+                st.error(f"Error al actualizar el pago: {e}")
+        
+        if cancel_edit:
+            st.rerun() # Simplemente cierra el modal
+# --- 💡 FIN CAMBIO 1 ---
+
+
+# --- FORMULARIO PARA REGISTRAR PAGO ---
 with st.expander("Registrar Nuevo Pago y Generar Recibo", expanded=False):
     conn = get_connection()
     st.write("")
-    # --- Filtro por Grupo ---
+    
     df_grupos = pd.read_sql("SELECT grupo_id, nombre_grupo FROM Grupos WHERE status_grupo = 'Activo' ORDER BY nombre_grupo ASC", conn)
     opciones_grupos = {0: "Todos los Grupos"}
     for index, row in df_grupos.iterrows():
@@ -242,7 +304,6 @@ with st.expander("Registrar Nuevo Pago y Generar Recibo", expanded=False):
     )
     
     st.write("")
-    # Carga de alumnos según el filtro
     if grupo_filtrado_id == 0:
         df_alumnos_filtrados = pd.read_sql("SELECT alumno_id, nombre_completo FROM Alumnos WHERE status_alumno = 'Activo' ORDER BY nombre_completo ASC", conn)
     else:
@@ -252,9 +313,6 @@ with st.expander("Registrar Nuevo Pago y Generar Recibo", expanded=False):
     if df_alumnos_filtrados.empty:
         st.warning("No hay alumnos 'Activos' que coincidan con el filtro seleccionado.")
     else:
-        # --- ESTRUCTURA CORREGIDA A PRUEBA DE ERRORES ---
-        
-        # 1. SELECCIONAMOS AL ALUMNO FUERA DEL FORMULARIO
         alumno_id = st.selectbox(
             "Selecciona un Alumno",
             options=df_alumnos_filtrados['alumno_id'],
@@ -263,7 +321,6 @@ with st.expander("Registrar Nuevo Pago y Generar Recibo", expanded=False):
             placeholder="Selecciona un alumno..."
         )
         
-        # 2. CALCULAMOS LOS CONCEPTOS DISPONIBLES
         conceptos_disponibles = []
         if alumno_id:
             todos_conceptos = ["Inscripción", "Mensualidad 1", "Mensualidad 2", "Mensualidad 3", "Mensualidad 4", "Mensualidad 5", "Mensualidad 6"]
@@ -273,12 +330,11 @@ with st.expander("Registrar Nuevo Pago y Generar Recibo", expanded=False):
             if df_pagados.empty:
                 conceptos_disponibles = todos_conceptos
             else:
+                # Se aplica .strip() aquí también por seguridad
                 conceptos_pagados = list(df_pagados['concepto'].str.strip())
                 conceptos_disponibles = [c for c in todos_conceptos if c not in conceptos_pagados]
         
-        # 3. DIBUJAMOS EL FORMULARIO CON LOS DATOS YA CALCULADOS
         with st.form("registro_pago_form"):
-            # Mostramos el nombre del alumno seleccionado dentro del form para claridad
             if alumno_id:
                 st.write(f"**Alumno Seleccionado:** {df_alumnos_filtrados[df_alumnos_filtrados['alumno_id'] == alumno_id]['nombre_completo'].values[0]}")
             
@@ -293,9 +349,7 @@ with st.expander("Registrar Nuevo Pago y Generar Recibo", expanded=False):
             
             if alumno_id and not conceptos_disponibles:
                 st.info("Este alumno ya ha completado todos sus pagos.")
-
             
-            # Botón de envío (tipo 'primary' para que sea azul)
             submitted = st.form_submit_button(
                 "Registrar Pago", 
                 disabled=(not conceptos_disponibles or not alumno_id),
@@ -323,7 +377,7 @@ with st.expander("Registrar Nuevo Pago y Generar Recibo", expanded=False):
                             cur.execute(sql, (inscripcion_id, str(nuevo_folio), monto, fecha, concepto, metodo, 'Completo'))
                             conn.commit()
                             st.success(f"¡Pago registrado con folio {nuevo_folio}!")
-                            st.rerun() # Esto recargará la página (y el expander se quedará cerrado)
+                            st.rerun() 
                     except Exception as e:
                         st.error(f"Ocurrió un error: {e}")
 
@@ -337,39 +391,31 @@ if 'pdf_a_descargar' in st.session_state:
     del st.session_state.pdf_a_descargar
 
 
-# --- TABLA DE HISTORIAL DE PAGOS (SOLUCIÓN 2 y 3) ---
-# 1. Envolvemos todo en el st.container(border=True) para la "tarjeta"
+# --- TABLA DE HISTORIAL DE PAGOS ---
 with st.container(border=True):
     st.subheader("Historial de Pagos Registrados")
 
-    # 2. Replicamos la estructura de búsqueda de admin.py
     col_search_button, col_search_input = st.columns([0.1, 0.9])
     
     with col_search_input:
         search_term_input = st.text_input(
             "Buscar por Folio o Nombre",
             placeholder="Buscar por Folio o Nombre...",
-            key="search_pagos_realtime", # Key para el input
-            value=st.session_state.get("search_value_pagos", ""), # Valor guardado
-            label_visibility="collapsed" # Ocultamos la etiqueta
+            key="search_pagos_realtime", 
+            value=st.session_state.get("search_value_pagos", ""), 
+            label_visibility="collapsed" 
         )
 
-    # El filtro se basa en el valor guardado en session_state
     search_term = st.session_state.get("search_value_pagos", "")
 
     with col_search_button:
         if st.button("🔍", key="search_pagos_button", use_container_width=True):
-            # Al hacer clic, se actualiza el valor guardado y se recarga
             st.session_state["search_value_pagos"] = st.session_state["search_pagos_realtime"]
             st.rerun()
 
-    # (Si el valor del input cambia y se presiona Enter, también se filtra)
     if search_term_input != search_term:
         st.session_state.search_value_pagos = search_term_input
         search_term = search_term_input
-        # No es necesario st.rerun() aquí, Streamlit lo maneja al presionar Enter
-
-    # Divisor
 
     try:
         conn = get_connection()
@@ -384,7 +430,6 @@ with st.container(border=True):
         df_pagos = pd.read_sql(query_pagos, conn)
         df_pagos["folio"] = df_pagos["folio"].astype(str)
 
-        # Aplicar el filtro si 'search_term' (el confirmado) existe
         if search_term and search_term.strip():
             search_term_clean = remove_accents(search_term.strip())
             df_pagos = df_pagos[
@@ -392,21 +437,17 @@ with st.container(border=True):
                 df_pagos['nombre_completo'].apply(remove_accents).str.contains(search_term_clean, case=False)
             ]
         
-        # --- NUEVA ESTRUCTURA DE TABLA (SOLUCIÓN 3) ---
-        
-        # 3. Envolvemos la tabla en el div que tu CSS espera
-        st.markdown('<div class="table-container">', unsafe_allow_html=True)
+        st.markdown("""<div class="table-container">""", unsafe_allow_html=True)
 
-        col_widths = [2, 2, 3.5, 2, 2, 1.5, 3, 2]
-        headers = ["Recibo", "Folio", "Nombre", "Método de Pago", "Fecha", "Monto", "Concepto", "Status"]
+        # --- 💡 CAMBIO 2: Ancho de columna 'Acciones' ajustado de 3 a 1.5 ---
+        col_widths = [4, 1.5, 3.5, 2, 2, 1.5, 3, 2] 
+        headers = ["Acciones", "Folio", "Nombre", "Método de Pago", "Fecha", "Monto", "Concepto", "Status"]
 
-        # 4. Creamos la CABECERA con st.container(border=True)
         with st.container(border=True):
             cols_header = st.columns(col_widths)
             for col, header in zip(cols_header, headers):
                 col.markdown(f"**{header}**")
 
-        # 5. Creamos las FILAS con st.container(border=True)
         if df_pagos.empty:
             st.info("No se encontraron pagos con ese filtro.")
         else:
@@ -414,20 +455,28 @@ with st.container(border=True):
                 with st.container(border=True):
                     cols_row = st.columns(col_widths)
                     
-                    # Botón Generar (SOLUCIÓN 4: con estilo 'btn-warning')
+                    # --- 💡 CAMBIO 3: Botones lado a lado ---
+                    # Columna de Acciones con 2 sub-columnas
                     with cols_row[0]:
-                        st.markdown('<div class="btn-warning">', unsafe_allow_html=True)
-                        if st.button("📄 Generar", key=f"pdf_{row['folio']}", use_container_width=True):
-                            pdf_bytes = generar_recibo_pdf(
-                                row['folio'], row['fecha_pago'], row['nombre_completo'],
-                                row['concepto'], row['monto'], row['metodo_pago']
-                            )
-                            st.session_state.pdf_a_descargar = {"data": pdf_bytes, "file_name": f"recibo_{row['folio']}.pdf"}
-                            st.rerun()
-                        st.markdown('</div>', unsafe_allow_html=True)
-                    
+                        col_btn_1, col_btn_2 = st.columns(2)
+                        with col_btn_1:
+                            if st.button("📄 Generar Recibo", key=f"pdf_{row['folio']}", use_container_width=True, help="Generar Recibo PDF"):
+                                pdf_bytes = generar_recibo_pdf(
+                                    row['folio'], row['fecha_pago'], row['nombre_completo'],
+                                    row['concepto'], row['monto'], row['metodo_pago']
+                                )
+                                st.session_state.pdf_a_descargar = {"data": pdf_bytes, "file_name": f"recibo_{row['folio']}.pdf"}
+                                st.rerun()
+                        
+                        with col_btn_2:
+                            # --- 💡 CAMBIO 4: Se llama a la nueva función modal ---
+                            if st.button("✏️ Editar", key=f"edit_{row['folio']}", use_container_width=True, help="Editar Pago"):
+                                # Llamamos a nuestra nueva función de diálogo
+                                modal_editar_pago(row.to_dict(), conn)
+                    # --- 💡 FIN DE CAMBIOS DE BOTONES ---
+
                     # Folio
-                    cols_row[1].markdown(f"<span style='color: #1c83e1; font-weight: bold;'>{row['folio']}</span>", unsafe_allow_html=True)
+                    cols_row[1].markdown(f"""<span style='color: #1c83e1; font-weight: bold;'>{row['folio']}</span>""", unsafe_allow_html=True)
                     
                     # Resto de los datos
                     cols_row[2].write(row['nombre_completo'])
@@ -437,11 +486,10 @@ with st.container(border=True):
                     cols_row[6].write(row['concepto'])
                     cols_row[7].write(row['status_pago'])
 
-        # 6. Cerramos el div del contenedor
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("""</div>""", unsafe_allow_html=True)
 
     except Exception as e:
         st.error(f"Ocurrió un error al cargar el historial de pagos: {e}")
 
-# (El 'except' de arriba cierra el 'try' de la tabla)
-# (Este 'with' cierra el st.container(border=True) principal)
+# --- 💡 CAMBIO 5: Se eliminó el bloque 'if "edit_payment_folio" in st.session_state...' ---
+# (El código del modal que estaba aquí ahora está en la función 'modal_editar_pago' arriba)
