@@ -507,7 +507,7 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
     }
 
     /* ================================================================== */
-    /* === 7. ESTILOS PARA TABLAS HTML (.tabla-estilizada) === */
+    /* === 7. ESTILOS PARA TABLAS HTML (.tabla-estilizada terminada) === */
     /* ================================================================== */
 
     /* Contenedor general de la tabla generada por .to_html() */
