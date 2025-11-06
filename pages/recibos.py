@@ -1,11 +1,4 @@
 import unicodedata
-
-def remove_accents(input_str):
-    if isinstance(input_str, str):
-        nfkd_form = unicodedata.normalize('NFKD', input_str)
-        return ''.join([c for c in nfkd_form if not unicodedata.combining(c)])
-    return input_str
-
 import streamlit as st
 import psycopg2
 import pandas as pd
@@ -15,6 +8,13 @@ import io
 from fpdf import FPDF
 from num2words import num2words
 from utils.css import load_css
+
+# --- FUNCIÓN DE ACENTOS (ya la tenías, movida aquí) ---
+def remove_accents(input_str):
+    if isinstance(input_str, str):
+        nfkd_form = unicodedata.normalize('NFKD', input_str)
+        return ''.join([c for c in nfkd_form if not unicodedata.combining(c)])
+    return input_str
 
 # --- CONFIGURACIÓN Y CSS ---
 load_css()
@@ -198,8 +198,7 @@ def generar_recibo_pdf(folio, fecha, nombre_alumno, concepto, monto, metodo_pago
     
     return bytes(pdf.output())
 
-# --- 💡 INICIO CAMBIO 1: NUEVA FUNCIÓN MODAL ---
-# Esta es la nueva función de modal que se llama desde el botón de la tabla.
+# --- FUNCIÓN MODAL ---
 @st.dialog("✏️ Editar Pago")
 def modal_editar_pago(payment_data, conn):
     """
@@ -211,7 +210,6 @@ def modal_editar_pago(payment_data, conn):
     lista_metodos = ["Transferencia", "Efectivo", "Tarjeta"]
 
     try:
-        # --- 💡 CORRECCIÓN IMPORTANTE (EL ERROR ESTABA AQUÍ) ---
         # .strip() elimina espacios en blanco al inicio o final
         current_concepto = payment_data['concepto'].strip()
         current_metodo = payment_data['metodo_pago'].strip()
@@ -284,7 +282,33 @@ def modal_editar_pago(payment_data, conn):
         
         if cancel_edit:
             st.rerun() # Simplemente cierra el modal
-# --- 💡 FIN CAMBIO 1 ---
+
+# --- CAMBIO 2: NUEVA FUNCIÓN "HANDLER" ---
+def handle_status_pago_change(folio):
+    """
+    Actualiza el status_pago de un recibo en la base de datos
+    cuando el selectbox de la tabla cambia.
+    """
+    conn = get_connection()
+    try:
+        # Obtenemos el nuevo valor desde st.session_state
+        nuevo_status = st.session_state[f"status_pago_{folio}"]
+        
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE Pagos SET status_pago = %s WHERE folio = %s",
+                (nuevo_status, str(folio)) # El folio se maneja como string
+            )
+            conn.commit()
+        
+        st.success(f"Status del folio {folio} actualizado a {nuevo_status}.")
+        # Opcional: Limpiar caché si la tabla de pagos está cacheada
+        # get_pagos_data.clear() 
+        
+    except Exception as e:
+        st.error(f"Error al actualizar el status del pago: {e}")
+        conn.rollback()
+# --- FIN CAMBIO 2 ---
 
 
 # --- FORMULARIO PARA REGISTRAR PAGO ---
@@ -377,8 +401,11 @@ with st.expander("Registrar Nuevo Pago y Generar Recibo", expanded=False):
                             max_folio = cur.fetchone()[0]
                             nuevo_folio = (max_folio + 1) if max_folio is not None else 1001
                             
+                            # --- CAMBIO 1: REGISTRAR COMO 'Pendiente' ---
                             sql = "INSERT INTO Pagos (inscripcion_id, folio, monto, fecha_pago, concepto, metodo_pago, status_pago) VALUES (%s, %s, %s, %s, %s, %s, %s)"
-                            cur.execute(sql, (inscripcion_id, str(nuevo_folio), monto, fecha, concepto, metodo, 'Completo'))
+                            cur.execute(sql, (inscripcion_id, str(nuevo_folio), monto, fecha, concepto, metodo, 'Pendiente')) # <-- CAMBIO APLICADO
+                            # --- FIN CAMBIO 1 ---
+                            
                             conn.commit()
                             st.success(f"¡Pago registrado con folio {nuevo_folio}!")
                             st.rerun() 
@@ -443,7 +470,7 @@ with st.container(border=True):
         
         st.markdown("""<div class="table-container">""", unsafe_allow_html=True)
 
-        # --- 💡 CAMBIO 2: Ancho de columna 'Acciones' ajustado de 3 a 1.5 ---
+        # Anchos de columna (los mantuve como los tenías)
         col_widths = [3.5, 1.5, 3.5, 2, 2, 1.5, 3, 2] 
         headers = ["Acciones", "Folio", "Nombre", "Método de Pago", "Fecha", "Monto", "Concepto", "Status"]
 
@@ -459,7 +486,6 @@ with st.container(border=True):
                 with st.container(border=True):
                     cols_row = st.columns(col_widths)
                     
-                    # --- 💡 CAMBIO 3: Botones lado a lado ---
                     # Columna de Acciones con 2 sub-columnas
                     with cols_row[0]:
                         col_btn_1, col_btn_2 = st.columns(2)
@@ -473,11 +499,8 @@ with st.container(border=True):
                                 st.rerun()
                         
                         with col_btn_2:
-                            # --- 💡 CAMBIO 4: Se llama a la nueva función modal ---
                             if st.button("✏️ Editar Recibo", key=f"edit_{row['folio']}", use_container_width=True, help="Editar Pago"):
-                                # Llamamos a nuestra nueva función de diálogo
                                 modal_editar_pago(row.to_dict(), conn)
-                    # --- 💡 FIN DE CAMBIOS DE BOTONES ---
 
                     # Folio
                     cols_row[1].markdown(f"""<span style='color: #1c83e1; font-weight: bold;'>{row['folio']}</span>""", unsafe_allow_html=True)
@@ -488,12 +511,30 @@ with st.container(border=True):
                     cols_row[4].write(row['fecha_pago'].strftime('%d/%m/%Y'))
                     cols_row[5].write(f"${float(row['monto']):,.2f}")
                     cols_row[6].write(row['concepto'])
-                    cols_row[7].write(row['status_pago'])
+                    
+                    # --- CAMBIO 3: SELECTBOX DE STATUS ---
+                    with cols_row[7]:
+                        status_options = ["Pendiente", "Completo"]
+                        current_status = row['status_pago'].strip()
+                        
+                        # Manejo de seguridad por si hay un status inesperado en la BBDD
+                        if current_status not in status_options:
+                            status_options.append(current_status)
+                            
+                        current_index = status_options.index(current_status)
+                        
+                        st.selectbox(
+                            "Status del Pago",
+                            options=status_options,
+                            index=current_index,
+                            key=f"status_pago_{row['folio']}",  # Usamos el folio como ID único
+                            on_change=handle_status_pago_change, # Llamamos a la función del Paso 2
+                            args=(row['folio'],), # Le pasamos el folio a la función
+                            label_visibility="collapsed"
+                        )
+                    # --- FIN CAMBIO 3 ---
 
         st.markdown("""</div>""", unsafe_allow_html=True)
 
     except Exception as e:
         st.error(f"Ocurrió un error al cargar el historial de pagos: {e}")
-
-# --- 💡 CAMBIO 5: Se eliminó el bloque 'if "edit_payment_folio" in st.session_state...' ---
-# (El código del modal que estaba aquí ahora está en la función 'modal_editar_pago' arriba)
