@@ -345,7 +345,7 @@ with st.expander("Registrar Nuevo Pago y Generar Recibo", expanded=False):
             col1, col2 = st.columns(2)
             with col1:
                 concepto = st.selectbox("Concepto del Pago", options=conceptos_disponibles, disabled=(not alumno_id))
-                monto = st.number_input("Monto Pagado", min_value=0.0, step=50.0, value=0.0)
+                monto = st.number_input("Monto Pagado", min_value=0.0, step=50.0, value=None)
 
             with col2:
                 metodo = st.selectbox("Método de Pago", ["Transferencia", "Efectivo", "Tarjeta"])

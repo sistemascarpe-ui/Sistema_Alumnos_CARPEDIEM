@@ -28,7 +28,8 @@ def load_css():
     h1, h2, h3, h4, h5, h6 {
         text-align: center !important;
     }
-    table, [data-testid="stTable"], [data-testid="stDataFrame"] {
+    /* Esta regla es solo para centrar componentes NATIVOS de Streamlit */
+    [data-testid="stTable"], [data-testid="stDataFrame"] {
         margin-left: auto !important;
         margin-right: auto !important;
         display: block !important;
@@ -505,7 +506,7 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
         display: none !important;
     }
 
-        /* ================================================================== */
+    /* ================================================================== */
     /* === 7. ESTILOS PARA TABLAS HTML (.tabla-estilizada) === */
     /* ================================================================== */
 
@@ -535,7 +536,6 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
     .tabla-estilizada td {
         padding: 12px 15px;           /* Relleno cómodo */
         text-align: center;           /* Alineación centrada */
-        vertical-align: middle;       /* 💡 AÑADIDO: Centrado vertical */
     }
 
     /* Celdas del cuerpo (tbody) */
@@ -553,52 +553,10 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
         border-bottom: 2px solid #0d47a1; /* Borde final que coincide con el header */
     }
 
-    /* Efecto al pasar el mouse (hover estilos de stDataFrame) */
+    /* Efecto al pasar el mouse (hover) */
     .tabla-estilizada tbody tr:hover {
         background-color: #e9ecef;    /* Coincide con tu hover de stDataFrame */
         cursor: default;
     }
-    
-    
-    
-    /* --- 💡💡💡 INICIO DE LA CORRECCIÓN GLOBAL 💡💡💡 --- */
-    
-    /* ================================================================== */
-    /* === 8. CENTRADO GLOBAL PARA TABLAS (st.container .table-container) === */
-    /* ================================================================== */
-    
-    /* Apunta a CADA CELDA (columna) que es hija directa de 
-     un stHorizontalBlock (la fila), PERO SÓLO dentro de .table-container
-    */
-    .table-container [data-testid="stContainer"] [data-testid="stHorizontalBlock"] > div {
-        /* Centra verticalmente el contenido (botones, texto) */
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: center !important;
-        
-        /* Centra horizontalmente el contenido (botones, texto) */
-        align-items: center !important; 
-        text-align: center !important; 
-    }
-
-    /* Asegura que el texto de st.markdown también se centre 
-     (aplicado a los encabezados) 
-    */
-    .table-container [data-testid="stContainer"] [data-testid="stHorizontalBlock"] > div .stMarkdownContainer {
-        text-align: center !important;
-        width: 100% !important; /* Ocupa el ancho de la celda */
-    }
-    
-    /* Asegura que el texto de st.write también se centre 
-     (aplicado a las celdas de datos) 
-    */
-    .table-container [data-testid="stContainer"] [data-testid="stHorizontalBlock"] > div > div[data-testid="stMarkdownContainer"] p {
-         text-align: center !important;
-         width: 100% !important;
-    }
-    
-    /* --- 💡💡💡 FIN DE LA CORRECCIÓN GLOBAL 💡💡💡 --- */
-    
-    
     </style>
     """, unsafe_allow_html=True)

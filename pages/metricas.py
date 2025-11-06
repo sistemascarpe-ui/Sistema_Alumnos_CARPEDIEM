@@ -125,7 +125,6 @@ df_html_ingresos = df_ingresos_mensuales.to_html(
     classes="tabla-estilizada",
     justify="left"               
 )
-# Renderizar el HTML usando st.markdown
 st.markdown(df_html_ingresos, unsafe_allow_html=True)
 
 
@@ -152,7 +151,7 @@ df_alumnos_registrados_mensuales = get_alumnos_registrados_mensuales()
 # Reutilizamos la misma clase CSS para la segunda tabla
 df_html_alumnos = df_alumnos_registrados_mensuales.to_html(
     index=False, 
-    classes="tabla-estilizada", 
+    classes="tabla-estilizada",
     justify="left"
 )
 st.markdown(df_html_alumnos, unsafe_allow_html=True)
