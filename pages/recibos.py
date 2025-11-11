@@ -9,7 +9,18 @@ import io
 import unicodedata
 from num2words import num2words
 
-from utils.css import load_css
+# --- (CORREGIDO) PASO 1: IMPORTAR LÓGICA DE TEMA ---
+try:
+    # ¡Importamos AMBAS funciones!
+    from utils.theme import apply_theme, show_theme_toggle 
+except ImportError:
+    # Este error ahora SÍ significa que el archivo __init__.py falta
+    st.error("Error: No se pudo encontrar 'utils/theme.py'. ¿Añadiste el archivo 'utils/__init__.py'?")
+    st.stop()
+
+# --- (CORREGIDO) PASO 2: APLICAR EL TEMA ---
+# Esta función SOLO carga el CSS
+apply_theme()
 
 # --- FUNCIÓN DE ACENTOS ---
 def remove_accents(input_str):
@@ -18,8 +29,6 @@ def remove_accents(input_str):
         return ''.join([c for c in nfkd_form if not unicodedata.combining(c)])
     return input_str
 
-# --- CONFIGURACIÓN Y CSS ---
-load_css()
 
 # --- INICIO DEL BLOQUE "PORTERO" (Versión 2.0) ---
 
@@ -73,7 +82,7 @@ with st.sidebar:
     st.page_link("pages/recibos.py", label="Recibos de Pago", icon="🧾")
     st.page_link("pages/Historial.py", label="Historial de Grupos", icon="📚")
     st.page_link("pages/metricas.py", label="Métricas Históricas", icon="📈")
-    # --- Fin del menú ---
+    show_theme_toggle()
     
     st.markdown("---")
     

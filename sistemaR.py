@@ -4,9 +4,21 @@ import pandas as pd
 import datetime
 import bcrypt
 
-from utils.css import load_css
 
-load_css()
+# --- (CORREGIDO) PASO 1: IMPORTAR LÓGICA DE TEMA ---
+try:
+    # ¡Importamos AMBAS funciones!
+    from utils.theme import apply_theme, show_theme_toggle 
+except ImportError:
+    # Este error ahora SÍ significa que el archivo __init__.py falta
+    st.error("Error: No se pudo encontrar 'utils/theme.py'. ¿Añadiste el archivo 'utils/__init__.py'?")
+    st.stop()
+
+# --- (CORREGIDO) PASO 2: APLICAR EL TEMA ---
+# Esta función SOLO carga el CSS
+apply_theme()
+
+
 st.markdown("""<script>document.querySelector('html').setAttribute('lang', 'es');</script>""", unsafe_allow_html=True)
 
 # --- LÓGICA DE CONEXIÓN ROBUSTA ---
@@ -151,7 +163,7 @@ else:
         page_title="Dashboard Principal",
         layout="wide"
     )
-    load_css() # Carga el CSS completo
+    # (NOTA: La vieja llamada a 'load_css()' ha sido eliminada de aquí)
 
     # --- Menú lateral (Sidebar) ---
     with st.sidebar:
@@ -163,8 +175,11 @@ else:
         st.page_link("pages/recibos.py", label="Recibos de Pago", icon="🧾")
         st.page_link("pages/Historial.py", label="Historial de Grupos", icon="📚")
         st.page_link("pages/metricas.py", label="Métricas Históricas", icon="📈")
-        
+        show_theme_toggle()
         st.markdown("---")
+        
+        # (NOTA: El 'st.toggle' duplicado ha sido eliminado de aquí)
+        # La función 'apply_theme_and_toggle()' ya lo añade en este lugar.
         
         if st.button("Cerrar Sesión", use_container_width=True, type="primary"):
             st.session_state.logged_in = False

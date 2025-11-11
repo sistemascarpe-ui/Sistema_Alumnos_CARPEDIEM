@@ -2,10 +2,19 @@ import streamlit as st
 import psycopg2
 import pandas as pd
 import datetime
-from utils.css import load_css
 
-# Carga tu CSS (que ahora incluye .tabla-estilizada)
-load_css()
+# --- (CORREGIDO) PASO 1: IMPORTAR LÓGICA DE TEMA ---
+try:
+    # ¡Importamos AMBAS funciones!
+    from utils.theme import apply_theme, show_theme_toggle 
+except ImportError:
+    # Este error ahora SÍ significa que el archivo __init__.py falta
+    st.error("Error: No se pudo encontrar 'utils/theme.py'. ¿Añadiste el archivo 'utils/__init__.py'?")
+    st.stop()
+
+# --- (CORREGIDO) PASO 2: APLICAR EL TEMA ---
+# Esta función SOLO carga el CSS
+apply_theme()
 
 # --- INICIO DEL BLOQUE "PORTERO" ---
 
@@ -59,7 +68,7 @@ with st.sidebar:
     st.page_link("pages/recibos.py", label="Recibos de Pago", icon="🧾")
     st.page_link("pages/Historial.py", label="Historial de Grupos", icon="📚")
     st.page_link("pages/metricas.py", label="Métricas Históricas", icon="📈")
-    # --- Fin del menú ---
+    show_theme_toggle()
     
     st.markdown("---")
     

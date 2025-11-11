@@ -4,8 +4,20 @@ import pandas as pd
 import datetime
 import json
 import unicodedata
-# Asumiendo que tienes utils.css
-from utils.css import load_css
+
+
+ # --- (CORREGIDO) PASO 1: IMPORTAR LÓGICA DE TEMA ---
+try:
+    # ¡Importamos AMBAS funciones!
+    from utils.theme import apply_theme, show_theme_toggle 
+except ImportError:
+    # Este error ahora SÍ significa que el archivo __init__.py falta
+    st.error("Error: No se pudo encontrar 'utils/theme.py'. ¿Añadiste el archivo 'utils/__init__.py'?")
+    st.stop()
+
+# --- (CORREGIDO) PASO 2: APLICAR EL TEMA ---
+# Esta función SOLO carga el CSS
+apply_theme()
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -14,7 +26,6 @@ def remove_accents(input_str):
 # --- CONFIGURACIÓN INICIAL Y CSS ---
 # st.set_page_config debe ser lo primero y solo una vez
 st.set_page_config(page_title="Administración", layout="wide")
-load_css() # Cargar CSS una sola vez
 
 # --- INICIO DEL BLOQUE "PORTERO" (Simplificado para páginas) ---
 # 1. Verificar si el usuario ha iniciado sesión
@@ -36,7 +47,7 @@ with st.sidebar:
     # Asegúrate que el nombre del archivo sea Historial.py o historial.py
     st.page_link("pages/Historial.py", label="Historial de Grupos", icon="📚") 
     st.page_link("pages/metricas.py", label="Métricas Históricas", icon="📈")
-    
+    show_theme_toggle()
     st.markdown("---")
     
     # Se usa type="primary" para que el CSS lo detecte (Botón Azul Sólido)
