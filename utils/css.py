@@ -7,6 +7,11 @@ def load_css():
         display: none !important;
     }
 
+    /* Estilo para el botón de colapsar la barra lateral */
+    [data-testid="stSidebarCollapseButton"] span svg {
+        color: #000000 !important;
+    }
+
     /* ================================================================== */
     /* === 1. CONFIGURACIÓN GENERAL Y MENÚ DOBLE FIX === */
     /* ================================================================== */
@@ -284,6 +289,8 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
         border: 1px solid #dfe1e5 !important;
         padding: 0.4rem 0.6rem !important;
         background-color: white !important;
+        /* ¡¡AÑADE ESTA LÍNEA AQUÍ!! */
+        color: #31333F !important;
     }
     div[data-testid="stSelectbox"] {
         width: 100% !important;
@@ -321,9 +328,15 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
     button {
         border: 2px solid #1500FF !important; /* Borde inicial */
         transition: all 0.2s ease !important;
+        /* ¡¡AÑADE ESTAS 2 LÍNEAS!! */
+        background-color: white !important; 
+        color: #1500FF !important;
     }
     button:hover {
         border-color: #FF8400 !important; /* Borde al pasar el cursor */
+        /* ¡¡AÑADE ESTAS 2 LÍNEAS!! */
+        background-color: #f7f7f7 !important; /* Un fondo ligero al pasar */
+        color: #FF8400 !important;
     }
     button[data-baseweb="tab"]:hover {
         border-color: transparent !important; /* Asegura que otros bordes sean transparentes */
@@ -558,5 +571,62 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
         background-color: #e9ecef;    /* Coincide con tu hover de stDataFrame */
         cursor: default;
     }
+
+    /* ================================================================== */
+    /* === 8. (ACTUALIZADO) FIX PARA MODO OSCURO DEL NAVEGADOR === */
+    /* ================================================================== */
+    /* Fuerza los estilos claros incluso si el navegador está en modo oscuro */
+
+    /* Arregla el fondo del Form/Expander */
+    html[data-theme="dark"] [data-testid="stExpander"],
+    html[data-theme="dark"] [data-testid="stForm"],
+    html[data-theme="dark"] .st-emotion-cache-1r6slb0 {
+        background-color: white !important;
+        border: 1px solid #e5e7eb !important;
+    }
+
+    /* Arregla el cabezal del expander (la barra oscura de tu foto) */
+    html[data-theme="dark"] [data-testid="stExpander"] > summary {
+        background-color: #f0f4f8 !important; /* Fondo gris claro */
+        color: #31333F !important; /* Texto oscuro */
+    }
+    html[data-theme="dark"] [data-testid="stExpander"] > summary:hover {
+         background-color: #e5e7eb !important;
+    }
+
+    /* Arregla los inputs (los campos de texto) */
+    html[data-theme="dark"] div[data-testid="stTextInput"] input,
+    html[data-theme="dark"] div[data-testid="stNumberInput"] input,
+    html[data-theme="dark"] div[data-testid="stDateInput"] input,
+    html[data-theme="dark"] div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+        background-color: white !important;
+        color: #31333F !important;
+        border: 1px solid #dfe1e5 !important;
+    }
+
+    /* Arregla el color del texto 'placeholder' (ej. "Nombre completo") */
+    html[data-theme="dark"] ::-webkit-input-placeholder { color: #a0a0a0 !important; }
+    html[data-theme="dark"] ::-moz-placeholder { color: #a0a0a0 !important; }
+    html[data-theme="dark"] :-ms-input-placeholder { color: #a0a0a0 !important; }
+    html[data-theme="dark"] :-moz-placeholder { color: #a0a0a0 !important; }
+
+    /* ================================================================== */
+    /* === 9. (NUEVO) FIX PARA EL BOTÓN DE COLAPSAR SIDEBAR === */
+    /* ================================================================== */
+    
+    /* Apuntamos al 'button' DENTRO del 'div' con el test-id */
+    [data-testid="stSidebarCollapseButton"] button {
+        background-color: transparent !important;
+        border: none !important;
+        color: white !important; /* Color del icono (flecha) */
+    }
+
+    /* Y lo mismo para el :hover */
+    [data-testid="stSidebarCollapseButton"] button:hover {
+        background-color: rgba(255, 255, 255, 0.1) !important; /* Un leve brillo blanco */
+        border: none !important;
+        color: white !important;
+    }
+
     </style>
     """, unsafe_allow_html=True)

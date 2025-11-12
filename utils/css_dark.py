@@ -587,5 +587,62 @@ button[data-baseweb="tab"][aria-selected="true"]::after {
     #back-to-top:hover {
         background-color: #159040; /* Color hover para dark mode */
     }
+
+    /* ================================================================== */
+    /* === 9. (NUEVO) FIX PARA MODO CLARO DEL NAVEGADOR === */
+    /* ================================================================== */
+    /* Fuerza los estilos oscuros incluso si el navegador está en modo claro */
+
+    /* Arregla el fondo del Form/Expander */
+    html[data-theme="light"] [data-testid="stExpander"],
+    html[data-theme="light"] [data-testid="stForm"],
+    html[data-theme="light"] .st-emotion-cache-1r6slb0 {
+        background-color: var(--card-background-dark) !important;
+        border: 1px solid var(--card-border-dark) !important;
+    }
+
+    /* Arregla el cabezal del expander */
+    html[data-theme="light"] [data-testid="stExpander"] > summary {
+        background-color: var(--secondary-background-color-dark) !important;
+        color: var(--text-color-dark) !important;
+    }
+    html[data-theme="light"] [data-testid="stExpander"] > summary:hover {
+         background-color: var(--card-background-dark) !important;
+    }
+
+    /* Arregla los inputs (los campos de texto) */
+    html[data-theme="light"] div[data-testid="stTextInput"] input,
+    html[data-theme="light"] div[data-testid="stNumberInput"] input,
+    html[data-theme="light"] div[data-testid="stDateInput"] input,
+    html[data-theme="light"] div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+        background-color: var(--input-background-color-dark) !important;
+        color: var(--input-text-color-dark) !important;
+        border: 1px solid var(--input-border-color-dark) !important;
+    }
+
+    /* Arregla el color del texto 'placeholder' */
+    html[data-theme="light"] ::-webkit-input-placeholder { color: #a0a0a0 !important; }
+    html[data-theme="light"] ::-moz-placeholder { color: #a0a0a0 !important; }
+    html[data-theme="light"] :-ms-input-placeholder { color: #a0a0a0 !important; }
+    html[data-theme="light"] :-moz-placeholder { color: #a0a0a0 !important; }
+
+    /* ================================================================== */
+    /* === 10. (FIX 2.0) PARA EL BOTÓN DE COLAPSAR SIDEBAR === */
+    /* ================================================================== */
+    
+    /* Apuntamos al 'button' DENTRO del 'div' con el test-id */
+    [data-testid="stSidebarCollapseButton"] button {
+        background-color: transparent !important;
+        border: none !important;
+        color: var(--sidebar-text-dark) !important; 
+    }
+
+    /* Y lo mismo para el :hover */
+    [data-testid="stSidebarCollapseButton"] button:hover {
+        background-color: rgba(224, 224, 224, 0.1) !important; 
+        border: none !important;
+        color: var(--sidebar-text-dark) !important;
+    }
+
     </style>
     """, unsafe_allow_html=True)
