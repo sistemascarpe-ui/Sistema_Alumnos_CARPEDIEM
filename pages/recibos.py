@@ -209,6 +209,33 @@ def generar_recibo_pdf(folio, fecha, nombre_alumno, concepto, monto, metodo_pago
     
     return bytes(pdf.output())
 
+@st.dialog("📄 Recibo Generado")
+def modal_generar_recibo(payment_row):
+    pdf_bytes = generar_recibo_pdf(
+        payment_row['folio'],
+        payment_row['fecha_pago'],
+        payment_row['nombre_completo'],
+        payment_row['concepto'],
+        payment_row['monto'],
+        payment_row['metodo_pago']
+    )
+    st.subheader("Detalles del Recibo")
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.write(f"Folio: {payment_row['folio']}")
+        st.write(f"Alumno: {payment_row['nombre_completo']}")
+        st.write(f"Concepto: {payment_row['concepto']}")
+    with col_b:
+        st.write(f"Monto: ${float(payment_row['monto']):,.2f}")
+        st.write(f"Método: {payment_row['metodo_pago']}")
+        st.write(f"Fecha: {payment_row['fecha_pago'].strftime('%d/%m/%Y')}")
+    st.download_button(
+        label="✅ Descargar Recibo Generado",
+        data=pdf_bytes,
+        file_name=f"recibo_{payment_row['folio']}.pdf",
+        key=f"download_recibo_{payment_row['folio']}"
+    )
+
 # --- FUNCIÓN MODAL ---
 @st.dialog("✏️ Editar Pago")
 def modal_editar_pago(payment_data, conn):
@@ -423,14 +450,7 @@ with st.expander("Registrar Nuevo Pago y Generar Recibo", expanded=False):
                     except Exception as e:
                         st.error(f"Ocurrió un error: {e}")
 
-# --- BOTÓN DE DESCARGA ---
-if 'pdf_a_descargar' in st.session_state:
-    st.download_button(
-        label="✅ Descargar Recibo Generado", 
-        data=st.session_state.pdf_a_descargar["data"],
-        file_name=st.session_state.pdf_a_descargar["file_name"]
-    )
-    del st.session_state.pdf_a_descargar
+
 
 
 # --- TABLA DE HISTORIAL DE PAGOS ---
@@ -521,12 +541,7 @@ with st.container(border=True):
                         col_btn_1, col_btn_2 = st.columns(2)
                         with col_btn_1:
                             if st.button("📄 Generar Recibo", key=f"pdf_{row['folio']}", use_container_width=True, help="Generar Recibo PDF"):
-                                pdf_bytes = generar_recibo_pdf(
-                                    row['folio'], row['fecha_pago'], row['nombre_completo'],
-                                    row['concepto'], row['monto'], row['metodo_pago']
-                                )
-                                st.session_state.pdf_a_descargar = {"data": pdf_bytes, "file_name": f"recibo_{row['folio']}.pdf"}
-                                st.rerun()
+                                modal_generar_recibo(row.to_dict())
 
                         with col_btn_2:
                             if st.button("✏️ Editar Recibo", key=f"edit_{row['folio']}", use_container_width=True, help="Editar Pago"):

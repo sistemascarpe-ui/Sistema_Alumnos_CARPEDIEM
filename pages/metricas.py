@@ -131,9 +131,28 @@ with tab_ingresos:
         return df_ingresos
 
     df_ingresos_mensuales = get_ingresos_mensuales()
+    años = sorted(list({f[:4] for f in df_ingresos_mensuales["Fecha"]}), reverse=True)
+    meses_nombres = [
+        "Todos los meses","Enero","Febrero","Marzo","Abril","Mayo","Junio",
+        "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
+    ]
+    meses_map = {
+        "Enero":"01","Febrero":"02","Marzo":"03","Abril":"04","Mayo":"05","Junio":"06",
+        "Julio":"07","Agosto":"08","Septiembre":"09","Octubre":"10","Noviembre":"11","Diciembre":"12"
+    }
+    c1, c2 = st.columns(2)
+    with c1:
+        año_sel = st.selectbox("Año", options=["Todos los años"] + años, index=0, key="ingresos_ano")
+    with c2:
+        mes_sel = st.selectbox("Mes", options=meses_nombres, index=0, key="ingresos_mes")
+    df_ingresos_filtrado = df_ingresos_mensuales
+    if año_sel != "Todos los años":
+        df_ingresos_filtrado = df_ingresos_filtrado[df_ingresos_filtrado["Fecha"].str.slice(0,4) == str(año_sel)]
+    if mes_sel != "Todos los meses":
+        df_ingresos_filtrado = df_ingresos_filtrado[df_ingresos_filtrado["Fecha"].str.slice(5,7) == meses_map[mes_sel]]
 
     # Convertir el DataFrame a HTML con una clase CSS y sin el índice
-    df_html_ingresos = df_ingresos_mensuales.to_html(
+    df_html_ingresos = df_ingresos_filtrado.to_html(
         index=False, 
         classes="tabla-estilizada",
         justify="left"               
@@ -161,9 +180,28 @@ with tab_alumnos:
         return df_alumnos
 
     df_alumnos_registrados_mensuales = get_alumnos_registrados_mensuales()
+    años_a = sorted(list({f[:4] for f in df_alumnos_registrados_mensuales["Fecha"]}), reverse=True)
+    meses_nombres_a = [
+        "Todos los meses","Enero","Febrero","Marzo","Abril","Mayo","Junio",
+        "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
+    ]
+    meses_map_a = {
+        "Enero":"01","Febrero":"02","Marzo":"03","Abril":"04","Mayo":"05","Junio":"06",
+        "Julio":"07","Agosto":"08","Septiembre":"09","Octubre":"10","Noviembre":"11","Diciembre":"12"
+    }
+    c3, c4 = st.columns(2)
+    with c3:
+        año_sel_a = st.selectbox("Año", options=["Todos los años"] + años_a, index=0, key="alumnos_ano")
+    with c4:
+        mes_sel_a = st.selectbox("Mes", options=meses_nombres_a, index=0, key="alumnos_mes")
+    df_alumnos_filtrado = df_alumnos_registrados_mensuales
+    if año_sel_a != "Todos los años":
+        df_alumnos_filtrado = df_alumnos_filtrado[df_alumnos_filtrado["Fecha"].str.slice(0,4) == str(año_sel_a)]
+    if mes_sel_a != "Todos los meses":
+        df_alumnos_filtrado = df_alumnos_filtrado[df_alumnos_filtrado["Fecha"].str.slice(5,7) == meses_map_a[mes_sel_a]]
 
     # Reutilizamos la misma clase CSS para la segunda tabla
-    df_html_alumnos = df_alumnos_registrados_mensuales.to_html(
+    df_html_alumnos = df_alumnos_filtrado.to_html(
         index=False, 
         classes="tabla-estilizada",
         justify="left"
